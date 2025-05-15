@@ -34,7 +34,9 @@
       "IconIntroTracker",
       "StanceBar",
       "PetActionBar",
-      "ReloadUI"
+      "ReloadUI",
+      "CompactRaidFrameContainer",
+      "PlayerFrameGroupIndicatorText"
     ],
     "Lua.runtime.version": "Lua 5.1",
     "Lua.runtime.builtin": {

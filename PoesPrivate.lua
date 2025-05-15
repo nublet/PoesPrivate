@@ -173,6 +173,95 @@ local function ExportToys()
 end
 
 function ClearActionBars()
+	--for i = 1, 180 do
+	--PickupAction(i)
+	--PutItemInBackpack()
+	--ClearCursor()
+	--end
+
+	-- Action Bar 1
+	for i = 1, 12 do
+
+	end
+
+	-- Action Bar 1 Page 2
+	for i = 13, 24 do
+		PickupAction(i)
+		PutItemInBackpack()
+		ClearCursor()
+	end
+
+	-- Action Bar 4
+	for i = 25, 36 do
+
+	end
+
+	-- Action Bar 5
+	for i = 37, 48 do
+
+	end
+
+	-- Action Bar 3
+	for i = 49, 60 do
+
+	end
+
+	-- Action Bar 2
+	for i = 61, 72 do
+
+	end
+
+	-- Action Bar 1 Stance 1
+	for i = 73, 84 do
+
+	end
+
+	-- Action Bar 1 Stance 2
+	for i = 85, 96 do
+
+	end
+
+	-- Action Bar 1 Stance 3
+	for i = 97, 108 do
+
+	end
+
+	-- Action Bar 1 Stance 4
+	for i = 109, 120 do
+
+	end
+
+	-- Possessed
+	for i = 121, 132 do
+		PickupAction(i)
+		PutItemInBackpack()
+		ClearCursor()
+	end
+
+	-- Unknown
+	for i = 133, 144 do
+		PickupAction(i)
+		PutItemInBackpack()
+		ClearCursor()
+	end
+
+	-- Action Bar 6
+	for i = 145, 156 do
+
+	end
+
+	-- Action Bar 7
+	for i = 157, 168 do
+
+	end
+
+	-- Action Bar 8
+	for i = 169, 180 do
+
+	end
+end
+
+function ClearAllActionBars()
 	for i = 1, 180 do
 		PickupAction(i)
 		PutItemInBackpack()
@@ -263,12 +352,17 @@ function LoadActionBars()
 	LoadMacro(36, "ClearTarget")
 	-- Action Bar 5
 	LoadMacro(37, "ResetInstances")
+	LoadSpell(40, 13262)
 	-- Action Bar 6
 	LoadMacro(145, "LFGTeleport")
 	LoadMacro(146, "FocusMark")
-	LoadSpell(148, 390392)
+	LoadSpell(148, 390392) -- Herbalism
+	LoadSpell(148, 442615) -- Skinning
+	LoadSpell(148, 388213) -- Mining
 	LoadMacro(149, "FocusMark")
-	LoadSpell(150, 423395)
+	LoadSpell(150, 423395) -- Herbalism
+	LoadSpell(150, 440977) -- Skinning
+	LoadSpell(150, 423394) -- Mining
 	LoadItem(151, 85500)
 	LoadSpell(152, 376912)
 	LoadMacro(154, "PotDPS")
@@ -615,6 +709,10 @@ function ShareCurrentQuest(questLogId)
 end
 
 function ToggleActionBars()
+	if InCombatLockdown() then
+		return
+	end
+
 	--local bars, E = { 1, 3, 4, 5, 6, 13 }, unpack(_G["ElvUI"])
 
 	--local newState1 = E.db.actionbar["bar3"].visibility
@@ -637,7 +735,8 @@ function ToggleActionBars()
 	--E.ActionBars:PositionAndSizeBar("bar" .. n)
 	--end
 
-	local bars = { MainMenuBar, MultiBarBottomLeft, MultiBarBottomRight, MultiBarLeft, MultiBarRight, MultiBar5, PetActionBar, StanceBar }
+	local bars = { MainMenuBar, MultiBarBottomLeft, MultiBarBottomRight, MultiBarLeft, MultiBarRight, MultiBar5,
+		PetActionBar, StanceBar }
 	local isShown = MultiBarBottomLeft:IsShown()
 	local visibilityMain = isShown and "hide" or "[vehicleui][overridebar][possessbar] hide; show"
 	local visibilityOther = isShown and "hide" or "show"
@@ -648,6 +747,11 @@ function ToggleActionBars()
 		if index == 1 then
 			RegisterStateDriver(bar, "visibility", visibilityMain)
 		else
+			if visibilityOther == "hide" then
+				bar:SetAlpha(0)
+			else
+				bar:SetAlpha(1)
+			end
 			RegisterStateDriver(bar, "visibility", visibilityOther)
 		end
 	end
@@ -656,6 +760,8 @@ end
 function PoesBarsCommands(msg, editbox)
 	if msg == "clear" then
 		ClearActionBars()
+	elseif msg == "clearall" or msg == "ca" then
+		ClearAllActionBars()
 	elseif msg == "drop" then
 		for i = 1, C_QuestLog.GetNumQuestLogEntries() do
 			C_QuestLog.SetSelectedQuest(C_QuestLog.GetInfo(i).questID)
@@ -700,7 +806,7 @@ SLASH_PB1 = "/pb"
 SlashCmdList["PB"] = PoesBarsCommands
 
 local function OnEvent(self, event, ...)
-	if event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
+	if event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
 		if event == "PLAYER_ENTERING_WORLD" then
 			addon:Debounce("PlayerEnteringWorld", 1, function()
 				local CT, ach = C_ContentTracking, Enum.ContentTrackingType.Achievement
@@ -811,7 +917,7 @@ local function OnEvent(self, event, ...)
 			end
 		end
 	elseif event == "PLAYER_LOGIN" then
-		addon:Debounce("PlayerLogin", 1, function()
+		addon:Debounce("PlayerLogin", 5, function()
 			C_CVar.SetCVar("alwaysCompareItems", 1)
 			C_CVar.SetCVar("displaySpellActivationOverlays", 1)
 			C_CVar.SetCVar("spellActivationOverlayOpacity", 0.65)
