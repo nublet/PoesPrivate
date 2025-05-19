@@ -806,7 +806,13 @@ SLASH_PB1 = "/pb"
 SlashCmdList["PB"] = PoesBarsCommands
 
 local function OnEvent(self, event, ...)
-	if event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
+	if event == "LOOT_CLOSED" then
+		--ScanCompletedQuests()
+	elseif event == "MINIMAP_UPDATE_TRACKING" then
+		addon:Debounce("SetTrackingOptions", 1, function()
+			SetTrackingOptions()
+		end)
+	elseif event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
 		if event == "PLAYER_ENTERING_WORLD" then
 			addon:Debounce("PlayerEnteringWorld", 1, function()
 				local CT, ach = C_ContentTracking, Enum.ContentTrackingType.Achievement
@@ -832,6 +838,9 @@ local function OnEvent(self, event, ...)
 						end
 					end
 				end
+
+				QuickJoinToastButton:ClearAllPoints()
+				QuickJoinToastButton:SetPoint("BOTTOM", ChatFrameChannelButton, "TOP", 0, 0)
 			end)
 		end
 
@@ -861,12 +870,6 @@ local function OnEvent(self, event, ...)
 			end
 		end)
 
-		addon:Debounce("SetTrackingOptions", 1, function()
-			SetTrackingOptions()
-		end)
-	elseif event == "LOOT_CLOSED" then
-		--ScanCompletedQuests()
-	elseif event == "MINIMAP_UPDATE_TRACKING" then
 		addon:Debounce("SetTrackingOptions", 1, function()
 			SetTrackingOptions()
 		end)
@@ -916,27 +919,6 @@ local function OnEvent(self, event, ...)
 					"Withdrew " .. GetGoldString(copperDifference) .. "  from Warbank.")
 			end
 		end
-	elseif event == "PLAYER_LOGIN" then
-		addon:Debounce("PlayerLogin", 5, function()
-			C_CVar.SetCVar("alwaysCompareItems", 1)
-			C_CVar.SetCVar("displaySpellActivationOverlays", 1)
-			C_CVar.SetCVar("spellActivationOverlayOpacity", 0.65)
-
-			C_CVar.RegisterCVar("addonProfilerEnabled", 1)
-			C_CVar.SetCVar("addonProfilerEnabled", 0)
-
-			PetFrame:UnregisterEvent("UNIT_COMBAT")
-			PlayerFrame:UnregisterEvent("UNIT_COMBAT")
-			TargetFrame:UnregisterEvent("UNIT_COMBAT")
-
-			QuickJoinToastButton:ClearAllPoints()
-			QuickJoinToastButton:SetPoint("BOTTOM", ChatFrameChannelButton, "TOP", 0, 0)
-
-			IconIntroTracker.RegisterEvent = function() end
-			IconIntroTracker:UnregisterEvent('SPELL_PUSHED_TO_ACTIONBAR')
-
-			ToggleActionBars()
-		end)
 	elseif event == "SPELL_PUSHED_TO_ACTIONBAR" then
 		if not InCombatLockdown() then
 			local spellID, slotIndex, slotPos = ...
@@ -961,6 +943,24 @@ local function OnEvent(self, event, ...)
 				ProfessionsFrame.OrdersPage:RequestOrders(nil, false, false)
 			end)
 		end
+	elseif event == "VARIABLES_LOADED" then
+		addon:Debounce("VariablesLoaded", 5, function()
+			C_CVar.SetCVar("alwaysCompareItems", 1)
+			C_CVar.SetCVar("displaySpellActivationOverlays", 1)
+			C_CVar.SetCVar("spellActivationOverlayOpacity", 0.65)
+
+			C_CVar.RegisterCVar("addonProfilerEnabled", 1)
+			C_CVar.SetCVar("addonProfilerEnabled", 0)
+
+			PetFrame:UnregisterEvent("UNIT_COMBAT")
+			PlayerFrame:UnregisterEvent("UNIT_COMBAT")
+			TargetFrame:UnregisterEvent("UNIT_COMBAT")
+
+			IconIntroTracker.RegisterEvent = function() end
+			IconIntroTracker:UnregisterEvent('SPELL_PUSHED_TO_ACTIONBAR')
+
+			ToggleActionBars()
+		end)
 	end
 end
 
@@ -969,9 +969,9 @@ f:RegisterEvent("LOOT_CLOSED")
 f:RegisterEvent("MINIMAP_UPDATE_TRACKING")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW")
-f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("SPELL_PUSHED_TO_ACTIONBAR")
 f:RegisterEvent("TRADE_SKILL_LIST_UPDATE")
+f:RegisterEvent("VARIABLES_LOADED")
 f:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 f:SetScript("OnEvent", OnEvent)
 
