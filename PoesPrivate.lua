@@ -2,6 +2,9 @@ local addonName, addon = ...
 
 local completedQuests = {}
 local completedQuestsIsFirst = true
+local isFirstQuestRun = true
+local questProgress = {}
+local questWatched = {}
 local ordersUpdated = false
 
 local function ExportMounts()
@@ -172,6 +175,61 @@ local function ExportToys()
 	print("\124cFF0088FFpoesPrivate: \124r ExportToys Complete.")
 end
 
+local function UpdateQuestProgress()
+	if isFirstQuestRun then
+		for questLogIndex = 1, C_QuestLog.GetNumQuestLogEntries() do
+			local info = C_QuestLog.GetInfo(questLogIndex)
+			if info and not info.isHeader then
+				local objectives = C_QuestLog.GetQuestObjectives(info.questID)
+
+				for index, obj in ipairs(objectives) do
+					local key = info.questID .. ":" .. index
+
+					if obj.text == nil or obj.text == "" then
+						questProgress[key] = tostring(obj.numFulfilled or 0)
+					else
+						questProgress[key] = obj.text
+					end
+				end
+			end
+		end
+	else
+		for questLogIndex = 1, C_QuestLog.GetNumQuestLogEntries() do
+			local info = C_QuestLog.GetInfo(questLogIndex)
+			if info and not info.isHeader then
+				if not questWatched[info.questID] then
+					local objectives = C_QuestLog.GetQuestObjectives(info.questID)
+
+					for index, obj in ipairs(objectives) do
+						local key = info.questID .. ":" .. index
+						local oldText = questProgress[key]
+						local newText
+
+						if obj.text == nil or obj.text == "" then
+							newText = tostring(obj.numFulfilled or 0)
+						else
+							newText = obj.text
+						end
+
+						questProgress[key] = newText
+
+						if oldText ~= newText then
+							questWatched[info.questID] = true
+
+							C_QuestLog.AddQuestWatch(info.questID)
+							C_QuestLog.SetSelectedQuest(info.questID)
+
+							break
+						end
+					end
+				end
+			end
+		end
+	end
+
+	isFirstQuestRun = false
+end
+
 function ClearActionBars()
 	--for i = 1, 180 do
 	--PickupAction(i)
@@ -315,7 +373,7 @@ function ListActionBars()
 			elseif actionType == "item" then
 				print("LoadItem(", slot, ", ", actionID, ")")
 			elseif actionType == "macro" then
-				local macroName, macroIcon, macroBody = GetMacroInfo(actionID)
+				local macroName, macroIcon, macroBody = GetMacroInfo(actionText)
 
 				print("LoadMacro(", slot, ", ", actionID, ", \"", macroName, "\")", ", actionText:", actionText)
 			elseif actionType == "spell" then
@@ -697,7 +755,7 @@ function ShareCurrentQuest(questLogId)
 	local info = C_QuestLog.GetInfo(questLogId)
 
 	if not info then
-		print("Complete. Count: " .. questLogId)
+		print("\124cFF0088FFpoesPrivate: \124r Complete. Count: " .. questLogId)
 		return
 	end
 
@@ -792,12 +850,12 @@ function PoesBarsCommands(msg, editbox)
 		ClearActionBars()
 		LoadActionBars()
 	elseif msg == "share" then
-		print("Sharing Quests...")
+		print("\124cFF0088FFpoesPrivate: \124r Sharing Quests...")
 		ShareCurrentQuest(1)
 	elseif msg == "toggle" then
 		ToggleActionBars()
 	else
-		print("Unknown Command: ", msg)
+		print("\124cFF0088FFpoesPrivate: \124r Unknown Command: ", msg)
 	end
 end
 
@@ -806,7 +864,22 @@ SLASH_PB1 = "/pb"
 SlashCmdList["PB"] = PoesBarsCommands
 
 local function OnEvent(self, event, ...)
-	if event == "LOOT_CLOSED" then
+	if event == "CHAT_MSG_COMBAT_FACTION_CHANGE" then
+		local msg = ...
+		local factionName = msg:lower():match("reputation with (.+) increased")
+
+		if factionName then
+			for i = 1, C_Reputation.GetNumFactions() do
+				local factionData = C_Reputation.GetFactionDataByIndex(i)
+				if factionData then
+					if factionData.name:lower() == factionName and not factionData.isHeader then
+						C_Reputation.SetWatchedFactionByIndex(i)
+						break
+					end
+				end
+			end
+		end
+	elseif event == "LOOT_CLOSED" then
 		--ScanCompletedQuests()
 	elseif event == "MINIMAP_UPDATE_TRACKING" then
 		addon:Debounce("SetTrackingOptions", 1, function()
@@ -819,7 +892,7 @@ local function OnEvent(self, event, ...)
 				for i, id in ipairs(CT.GetTrackedIDs(ach)) do
 					local _, n, _, c = GetAchievementInfo(id)
 					if c then
-						print("clearing completed/tracked achieve:", n)
+						print("\124cFF0088FFpoesPrivate: \124r Clearing completed/tracked achieve:", n)
 						CT.StopTracking(ach, id, 1)
 					end
 				end
@@ -838,9 +911,6 @@ local function OnEvent(self, event, ...)
 						end
 					end
 				end
-
-				QuickJoinToastButton:ClearAllPoints()
-				QuickJoinToastButton:SetPoint("BOTTOM", ChatFrameChannelButton, "TOP", 0, 0)
 			end)
 		end
 
@@ -868,6 +938,9 @@ local function OnEvent(self, event, ...)
 					end
 				end
 			end
+
+			QuickJoinToastButton:ClearAllPoints()
+			QuickJoinToastButton:SetPoint("BOTTOM", ChatFrameChannelButton, "TOP", 0, 0)
 		end)
 
 		addon:Debounce("SetTrackingOptions", 1, function()
@@ -919,6 +992,12 @@ local function OnEvent(self, event, ...)
 					"Withdrew " .. GetGoldString(copperDifference) .. "  from Warbank.")
 			end
 		end
+	elseif event == "QUEST_LOG_UPDATE" then
+		if not InCombatLockdown() then
+			addon:Debounce("QUEST_LOG_UPDATE", 5, function()
+				UpdateQuestProgress()
+			end)
+		end
 	elseif event == "SPELL_PUSHED_TO_ACTIONBAR" then
 		if not InCombatLockdown() then
 			local spellID, slotIndex, slotPos = ...
@@ -952,6 +1031,17 @@ local function OnEvent(self, event, ...)
 			C_CVar.RegisterCVar("addonProfilerEnabled", 1)
 			C_CVar.SetCVar("addonProfilerEnabled", 0)
 
+			for questLogIndex = 1, C_QuestLog.GetNumQuestLogEntries() do
+				local info = C_QuestLog.GetInfo(questLogIndex)
+				if info and not info.isHeader then
+					local objectives = C_QuestLog.GetQuestObjectives(info.questID)
+
+					for index, obj in ipairs(objectives) do
+						local key = info.questID .. ":" .. index .. ":" .. obj.text .. ":" .. obj.numFulfilled
+					end
+				end
+			end
+
 			PetFrame:UnregisterEvent("UNIT_COMBAT")
 			PlayerFrame:UnregisterEvent("UNIT_COMBAT")
 			TargetFrame:UnregisterEvent("UNIT_COMBAT")
@@ -965,10 +1055,12 @@ local function OnEvent(self, event, ...)
 end
 
 local f = CreateFrame("Frame")
+f:RegisterEvent("CHAT_MSG_COMBAT_FACTION_CHANGE")
 f:RegisterEvent("LOOT_CLOSED")
 f:RegisterEvent("MINIMAP_UPDATE_TRACKING")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW")
+f:RegisterEvent("QUEST_LOG_UPDATE")
 f:RegisterEvent("SPELL_PUSHED_TO_ACTIONBAR")
 f:RegisterEvent("TRADE_SKILL_LIST_UPDATE")
 f:RegisterEvent("VARIABLES_LOADED")
