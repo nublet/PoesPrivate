@@ -188,7 +188,7 @@ local function UpdateQuestProgress()
 					if obj.text == nil or obj.text == "" then
 						questProgress[key] = tostring(obj.numFulfilled or 0)
 					else
-						questProgress[key] = obj.text
+						questProgress[key] = string.match(obj.text, "^%s*(%d+/%d+)") or obj.text
 					end
 				end
 			end
@@ -208,7 +208,7 @@ local function UpdateQuestProgress()
 						if obj.text == nil or obj.text == "" then
 							newText = tostring(obj.numFulfilled or 0)
 						else
-							newText = obj.text
+							newText = string.match(obj.text, "^%s*(%d+/%d+)") or obj.text
 						end
 
 						questProgress[key] = newText
@@ -880,7 +880,7 @@ local function OnEvent(self, event, ...)
 			end
 		end
 	elseif event == "LOOT_CLOSED" then
-		--ScanCompletedQuests()
+		ScanCompletedQuests()
 	elseif event == "MINIMAP_UPDATE_TRACKING" then
 		addon:Debounce("SetTrackingOptions", 1, function()
 			SetTrackingOptions()
@@ -1031,23 +1031,14 @@ local function OnEvent(self, event, ...)
 			C_CVar.RegisterCVar("addonProfilerEnabled", 1)
 			C_CVar.SetCVar("addonProfilerEnabled", 0)
 
-			for questLogIndex = 1, C_QuestLog.GetNumQuestLogEntries() do
-				local info = C_QuestLog.GetInfo(questLogIndex)
-				if info and not info.isHeader then
-					local objectives = C_QuestLog.GetQuestObjectives(info.questID)
-
-					for index, obj in ipairs(objectives) do
-						local key = info.questID .. ":" .. index .. ":" .. obj.text .. ":" .. obj.numFulfilled
-					end
-				end
-			end
-
 			PetFrame:UnregisterEvent("UNIT_COMBAT")
 			PlayerFrame:UnregisterEvent("UNIT_COMBAT")
 			TargetFrame:UnregisterEvent("UNIT_COMBAT")
 
 			IconIntroTracker.RegisterEvent = function() end
 			IconIntroTracker:UnregisterEvent('SPELL_PUSHED_TO_ACTIONBAR')
+
+			ScanCompletedQuests()
 
 			ToggleActionBars()
 		end)
