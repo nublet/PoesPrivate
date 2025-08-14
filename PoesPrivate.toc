@@ -1,10 +1,10 @@
-## Interface: 110107
+## Interface: 110200
 ## Title: PoesPrivate
 ## Description: Private functions and helpers
 ## Notes: Private
 ## Author: Poesboi
 ## Credits: 
-## Version: 25.0.5.201
+## Version: 26.0.6.201
 ## RequiredDeps: Blizzard_Professions
 ## SavedVariables: PoesBarsMounts, PoesBarsPets, PoesBarsToys, PoesBarsFirstAid, PoesBarsBlacksmithing, PoesBarsLeatherworking, PoesBarsAlchemy, PoesBarsHerbalism, PoesBarsCooking, PoesBarsMining, PoesBarsTailoring, PoesBarsEngineering, PoesBarsEnchanting, PoesBarsFishing, PoesBarsSkinning, PoesBarsJewelcrafting, PoesBarsInscription, PoesBarsArchaeology
 

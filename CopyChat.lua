@@ -44,16 +44,15 @@ local function CreateCopyButton(frame)
             scrollFrame:SetPoint("BOTTOMRIGHT", -30, 10)
 
             -- EditBox inside the ScrollFrame
-            local eb = CreateFrame("EditBox", "CopyChatFrameEditBox", scrollFrame)
-            eb:SetMultiLine(true)
-            eb:SetFontObject(ChatFontNormal)
-            eb:SetAutoFocus(true)
-            eb:SetWidth(660)
-            eb:SetScript("OnEscapePressed", function() CopyChatFrame:Hide() end)
+            CopyChatFrameEditBox = CreateFrame("EditBox", "CopyChatFrameEditBox", scrollFrame)
+            CopyChatFrameEditBox:SetMultiLine(true)
+            CopyChatFrameEditBox:SetFontObject(ChatFontNormal)
+            CopyChatFrameEditBox:SetAutoFocus(true)
+            CopyChatFrameEditBox:SetWidth(660)
+            CopyChatFrameEditBox:SetScript("OnEscapePressed", function() CopyChatFrame:Hide() end)
 
-            scrollFrame:SetScrollChild(eb)
+            scrollFrame:SetScrollChild(CopyChatFrameEditBox)
 
-            CopyChatFrame.editBox = eb
             CopyChatFrame:Hide()
         end
 

@@ -667,6 +667,9 @@ function SetProfiles(profileName)
 end
 
 function SetTrackingOptions()
+	QuickJoinToastButton:ClearAllPoints()
+	QuickJoinToastButton:SetPoint("BOTTOM", ChatFrameChannelButton, "TOP", 0, 0)
+
 	for i = 0, C_Minimap.GetNumTrackingTypes(), 1 do
 		local info = C_Minimap.GetTrackingInfo(i)
 		-- DevTools_Dump(info)
@@ -938,9 +941,6 @@ local function OnEvent(self, event, ...)
 					end
 				end
 			end
-
-			QuickJoinToastButton:ClearAllPoints()
-			QuickJoinToastButton:SetPoint("BOTTOM", ChatFrameChannelButton, "TOP", 0, 0)
 		end)
 
 		addon:Debounce("SetTrackingOptions", 1, function()
