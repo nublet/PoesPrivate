@@ -984,14 +984,56 @@ local function OnEvent(self, event, ...)
 
 			if copperDifference > 0 then
 				C_Bank.DepositMoney(Enum.BankType.Account, copperDifference)
-				print("\124cFF0088FFpoesPrivate: \124r",
-					"Deposited " .. GetGoldString(copperDifference) .. "  to Warbank.")
+				print("\124cFF0088FFpoesPrivate: \124r", "Deposited", GetGoldString(copperDifference), "to Warbank.")
 			elseif copperDifference < 0 then
 				copperDifference = abs(copperDifference)
 				C_Bank.WithdrawMoney(Enum.BankType.Account, copperDifference)
-				print("\124cFF0088FFpoesPrivate: \124r",
-					"Withdrew " .. GetGoldString(copperDifference) .. "  from Warbank.")
+				print("\124cFF0088FFpoesPrivate: \124r", "Withdrew", GetGoldString(copperDifference), "from Warbank.")
 			end
+
+			-- if playerLevel == 80 then
+			-- 	for itemID, desiredCount in pairs(addon.keepItems) do
+			-- 		local bagCount, bagSlots = addon:GetBagItems(itemID)
+			-- 		local bankCount, bankSlots = addon:GetWarbankItems(itemID)
+
+			-- 		local countDifference = bagCount - desiredCount
+
+			-- 		if countDifference == 0 then
+			-- 			break
+			-- 		end
+
+			-- 		if countDifference > 0 then
+			-- 			local toDeposit = countDifference
+
+			-- 			for _, slotData in ipairs(bagSlots) do
+			-- 				if toDeposit <= 0 then
+			-- 					break
+			-- 				end
+
+			-- 				local moveCount = math.min(toDeposit, slotData.count)
+			-- 				local itemLocation = ItemLocation:CreateFromBagAndSlot(slotData.bag, slotData.slot)
+			-- 				C_Bank.DepositItem(Enum.BankType.Account, itemLocation, moveCount)
+			-- 				print("\124cFF0088FFpoesPrivate: \124r", "Deposited", moveCount, "of", itemID, "to Warbank.")
+
+			-- 				toDeposit = toDeposit - moveCount
+			-- 			end
+			-- 		else
+			-- 			local toWithdraw = math.min(-countDifference, bankCount)
+
+			-- 			for _, slotData in ipairs(bankSlots) do
+			-- 				if toWithdraw <= 0 then
+			-- 					break
+			-- 				end
+
+			-- 				local moveCount = math.min(toWithdraw, slotData.count)
+			-- 				local itemLocation = ItemLocation:CreateFromBankSlot(Enum.BankType.Account, slotData.slot)
+			-- 				C_Bank.WithdrawItem(Enum.BankType.Account, itemLocation, moveCount)
+			-- 				print("\124cFF0088FFpoesPrivate: \124r", "Withdrew", moveCount, "of", itemID, "from Warbank.")
+			-- 				toWithdraw = toWithdraw - moveCount
+			-- 			end
+			-- 		end
+			-- 	end
+			-- end
 		end
 	elseif event == "QUEST_LOG_UPDATE" then
 		if not InCombatLockdown() then

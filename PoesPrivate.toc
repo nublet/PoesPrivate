@@ -9,6 +9,7 @@
 ## SavedVariables: PoesBarsMounts, PoesBarsPets, PoesBarsToys, PoesBarsFirstAid, PoesBarsBlacksmithing, PoesBarsLeatherworking, PoesBarsAlchemy, PoesBarsHerbalism, PoesBarsCooking, PoesBarsMining, PoesBarsTailoring, PoesBarsEngineering, PoesBarsEnchanting, PoesBarsFishing, PoesBarsSkinning, PoesBarsJewelcrafting, PoesBarsInscription, PoesBarsArchaeology
 
 CopyChat.lua
+Data.lua
 Helpers.lua
 
 PoesPrivate.lua
