@@ -191,14 +191,23 @@ local function UpdateQuestProgress()
 						questProgress[key] = string.match(obj.text, "^%s*(%d+/%d+)") or obj.text
 					end
 				end
+
+				questWatched[info.questID] = false
+
+				C_QuestLog.RemoveQuestWatch(info.questID)
 			end
 		end
+
+		addon:Debounce("isFirstQuestRun", 30, function()
+			isFirstQuestRun = false
+		end)
 	else
 		for questLogIndex = 1, C_QuestLog.GetNumQuestLogEntries() do
 			local info = C_QuestLog.GetInfo(questLogIndex)
 			if info and not info.isHeader then
 				if not questWatched[info.questID] then
 					local objectives = C_QuestLog.GetQuestObjectives(info.questID)
+					local wasUpdated = false
 
 					for index, obj in ipairs(objectives) do
 						local key = info.questID .. ":" .. index
@@ -214,20 +223,20 @@ local function UpdateQuestProgress()
 						questProgress[key] = newText
 
 						if oldText ~= newText then
-							questWatched[info.questID] = true
-
-							C_QuestLog.AddQuestWatch(info.questID)
-							C_QuestLog.SetSelectedQuest(info.questID)
-
-							break
+							wasUpdated = true
 						end
+					end
+
+					if wasUpdated then
+						questWatched[info.questID] = true
+
+						C_QuestLog.AddQuestWatch(info.questID)
+						C_QuestLog.SetSelectedQuest(info.questID)
 					end
 				end
 			end
 		end
 	end
-
-	isFirstQuestRun = false
 end
 
 function ClearActionBars()
@@ -1082,7 +1091,6 @@ local function OnEvent(self, event, ...)
 			IconIntroTracker:UnregisterEvent('SPELL_PUSHED_TO_ACTIONBAR')
 
 			ScanCompletedQuests()
-
 			ToggleActionBars()
 		end)
 	end
