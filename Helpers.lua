@@ -1,17 +1,38 @@
 local addonName, addon = ...
 
-local DebounceTimers = {}
+local cooldownMaximum = 120 -- 2 Minutes
+local cooldownMinimum = 0.05
+local cooldownQueue = {}
 
-function addon:Debounce(key, delay, func)
-	-- Cancel any existing timer for this key
-	if DebounceTimers[key] then
-		DebounceTimers[key]:Cancel()
+function addon:DebouncePrivate(key, delay, func)
+	if type(delay) ~= "number" or delay ~= delay then
+		delay = 3
+	elseif delay < cooldownMinimum then
+		delay = cooldownMinimum
+	elseif delay > cooldownMaximum then
+		delay = cooldownMaximum
 	end
 
-	-- Create a new timer and store it
-	DebounceTimers[key] = C_Timer.NewTimer(delay, function()
-		func()
-		DebounceTimers[key] = nil
+	local entry = cooldownQueue[key]
+
+	if entry and entry.timer then
+		entry.timer.cancelled = true
+	end
+
+	entry = { cancelled = false }
+	cooldownQueue[key] = entry
+
+	C_Timer.After(delay, function()
+		if entry.cancelled then
+			return
+		end
+
+		cooldownQueue[key] = nil
+
+		local ok, err = pcall(func)
+		if not ok then
+			geterrorhandler()(err)
+		end
 	end)
 end
 

@@ -2,10 +2,101 @@ local addonName, addon = ...
 
 local completedQuests = {}
 local completedQuestsIsFirst = true
-local isFirstQuestRun = true
-local questProgress = {}
-local questWatched = {}
+local questInformation = {}
 local ordersUpdated = false
+
+local function QuestCompleted(questID)
+	local questTitle = C_QuestLog.GetTitleForQuestID(questID)
+	local chatMessage = "Quest completed: [" .. questID .. "] " .. questTitle
+
+	if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+		C_ChatInfo.SendChatMessage(chatMessage, "INSTANCE_CHAT")
+	elseif IsInGroup(LE_PARTY_CATEGORY_HOME) then
+		C_ChatInfo.SendChatMessage(chatMessage, "PARTY")
+	else
+		C_ChatInfo.SendChatMessage(chatMessage, "SAY")
+	end
+end
+
+local function CheckQuestProgress(attemptNumber, questID)
+	local objectives = C_QuestLog.GetQuestObjectives(questID)
+	if not objectives then
+		if attemptNumber >= 5 then
+			print("\124cFF0088FFpoesPrivate: \124r Failed to get quest objectives:", questID)
+			return
+		end
+
+		addon:DebouncePrivate("questProgress_" .. questID, 5, function()
+			CheckQuestProgress(attemptNumber + 1, questID)
+		end)
+
+		return
+	end
+
+	local questTable = questInformation[questID] or {}
+
+	questTable.isComplete = questTable.isComplete or false
+	questTable.questValues = questTable.questValues or {}
+
+	if questTable.isComplete then
+		return
+	end
+
+	questTable.isComplete = true
+
+	local isNew = false
+	local wasUpdated = false
+
+	for index, objective in ipairs(objectives) do
+		local objectiveKey = questID .. ":" .. index
+
+		local OldQuestValue = questTable.questValues[objectiveKey] or ""
+		local NewQuestValue
+
+		if objective.finished then
+			NewQuestValue = "Complete"
+		else
+			questTable.isComplete = false
+
+			if objective.text == nil or objective.text == "" then
+				NewQuestValue = tostring(objective.numFulfilled or 0)
+			else
+				NewQuestValue = objective.text
+			end
+		end
+
+		if not NewQuestValue then
+			NewQuestValue = ""
+		end
+
+		if OldQuestValue == "" then
+			isNew = true
+		else
+			if OldQuestValue ~= NewQuestValue then
+				wasUpdated = true
+			end
+		end
+
+		questTable.questValues[objectiveKey] = NewQuestValue
+	end
+
+	if questTable.isComplete and wasUpdated then
+		addon:DebouncePrivate("questComplete_" .. questID, 1, function()
+			QuestCompleted(questID)
+		end)
+	end
+
+	if questTable.isComplete then
+		C_QuestLog.AddQuestWatch(questID)
+	elseif wasUpdated then
+		C_QuestLog.AddQuestWatch(questID)
+		C_QuestLog.SetSelectedQuest(questID)
+	elseif isNew then
+		C_QuestLog.RemoveQuestWatch(questID)
+	end
+
+	questInformation[questID] = questTable
+end
 
 local function ExportMounts()
 	PoesBarsMounts = {}
@@ -143,8 +234,7 @@ local function ExportProfession()
 		end
 	end
 
-	print("\124cFF0088FFpoesPrivate: \124r ExportProfession Complete.", professionInfo.profession,
-		professionInfo.professionName)
+	print("\124cFF0088FFpoesPrivate: \124r ExportProfession Complete.", professionInfo.profession, professionInfo.professionName)
 end
 
 local function ExportToys()
@@ -175,160 +265,7 @@ local function ExportToys()
 	print("\124cFF0088FFpoesPrivate: \124r ExportToys Complete.")
 end
 
-local function UpdateQuestProgress()
-	if isFirstQuestRun then
-		for questLogIndex = 1, C_QuestLog.GetNumQuestLogEntries() do
-			local info = C_QuestLog.GetInfo(questLogIndex)
-			if info and not info.isHeader then
-				local objectives = C_QuestLog.GetQuestObjectives(info.questID)
-
-				for index, obj in ipairs(objectives) do
-					local key = info.questID .. ":" .. index
-
-					if obj.text == nil or obj.text == "" then
-						questProgress[key] = tostring(obj.numFulfilled or 0)
-					else
-						questProgress[key] = string.match(obj.text, "^%s*(%d+/%d+)") or obj.text
-					end
-				end
-
-				questWatched[info.questID] = false
-
-				C_QuestLog.RemoveQuestWatch(info.questID)
-			end
-		end
-
-		addon:Debounce("isFirstQuestRun", 30, function()
-			isFirstQuestRun = false
-		end)
-	else
-		for questLogIndex = 1, C_QuestLog.GetNumQuestLogEntries() do
-			local info = C_QuestLog.GetInfo(questLogIndex)
-			if info and not info.isHeader then
-				if not questWatched[info.questID] then
-					local objectives = C_QuestLog.GetQuestObjectives(info.questID)
-					local wasUpdated = false
-
-					for index, obj in ipairs(objectives) do
-						local key = info.questID .. ":" .. index
-						local oldText = questProgress[key]
-						local newText
-
-						if obj.text == nil or obj.text == "" then
-							newText = tostring(obj.numFulfilled or 0)
-						else
-							newText = string.match(obj.text, "^%s*(%d+/%d+)") or obj.text
-						end
-
-						questProgress[key] = newText
-
-						if oldText ~= newText then
-							wasUpdated = true
-						end
-					end
-
-					if wasUpdated then
-						questWatched[info.questID] = true
-
-						C_QuestLog.AddQuestWatch(info.questID)
-						C_QuestLog.SetSelectedQuest(info.questID)
-					end
-				end
-			end
-		end
-	end
-end
-
 function ClearActionBars()
-	--for i = 1, 180 do
-	--PickupAction(i)
-	--PutItemInBackpack()
-	--ClearCursor()
-	--end
-
-	-- Action Bar 1
-	for i = 1, 12 do
-
-	end
-
-	-- Action Bar 1 Page 2
-	for i = 13, 24 do
-		PickupAction(i)
-		PutItemInBackpack()
-		ClearCursor()
-	end
-
-	-- Action Bar 4
-	for i = 25, 36 do
-
-	end
-
-	-- Action Bar 5
-	for i = 37, 48 do
-
-	end
-
-	-- Action Bar 3
-	for i = 49, 60 do
-
-	end
-
-	-- Action Bar 2
-	for i = 61, 72 do
-
-	end
-
-	-- Action Bar 1 Stance 1
-	for i = 73, 84 do
-
-	end
-
-	-- Action Bar 1 Stance 2
-	for i = 85, 96 do
-
-	end
-
-	-- Action Bar 1 Stance 3
-	for i = 97, 108 do
-
-	end
-
-	-- Action Bar 1 Stance 4
-	for i = 109, 120 do
-
-	end
-
-	-- Possessed
-	for i = 121, 132 do
-		PickupAction(i)
-		PutItemInBackpack()
-		ClearCursor()
-	end
-
-	-- Unknown
-	for i = 133, 144 do
-		PickupAction(i)
-		PutItemInBackpack()
-		ClearCursor()
-	end
-
-	-- Action Bar 6
-	for i = 145, 156 do
-
-	end
-
-	-- Action Bar 7
-	for i = 157, 168 do
-
-	end
-
-	-- Action Bar 8
-	for i = 169, 180 do
-
-	end
-end
-
-function ClearAllActionBars()
 	for i = 1, 180 do
 		PickupAction(i)
 		PutItemInBackpack()
@@ -378,24 +315,24 @@ function ListActionBars()
 
 		if actionType then
 			if actionType == "companion" then
-				print("LoadSpell(", slot, ", ", actionID, ")")
+				print("LoadSpell(", slot, ",", actionID, ")")
 			elseif actionType == "item" then
-				print("LoadItem(", slot, ", ", actionID, ")")
+				print("LoadItem(", slot, ",", actionID, ")")
 			elseif actionType == "macro" then
 				local macroName, macroIcon, macroBody = GetMacroInfo(actionText)
 
-				print("LoadMacro(", slot, ", ", actionID, ", \"", macroName, "\")", ", actionText:", actionText)
+				print("LoadMacro(", slot, ",", actionID, ",\"", macroName, "\")", ", actionText:", actionText)
 			elseif actionType == "spell" then
-				print("LoadSpell(", slot, ", ", actionID, ")")
+				print("LoadSpell(", slot, ",", actionID, ")")
 			elseif actionType == "summonmount" then
 				local mountID = tonumber(actionID) or -1
 				if mountID > 0 then
 					local _, spellID = C_MountJournal.GetMountInfoByID(mountID)
 
-					print("LoadSpell(", slot, ", ", spellID, ")")
+					print("LoadSpell(", slot, ",", spellID, ")")
 				end
 			else
-				print("actionType: ", actionType)
+				print("actionType:", actionType)
 			end
 		end
 	end
@@ -644,8 +581,7 @@ function ScanCompletedQuests()
 				else
 					local questTagInfo = C_QuestLog.GetQuestTagInfo(questID)
 					if questTagInfo then
-						print("\124cFF0088FFpoesPrivate: \124r Quest completed: [" ..
-							questTagInfo.tagName .. "]" .. questTitle)
+						print("\124cFF0088FFpoesPrivate: \124r Quest completed: [" .. questTagInfo.tagName .. "]" .. questTitle)
 					else
 						print("\124cFF0088FFpoesPrivate: \124r Quest completed: [" .. questID .. "] Unknown Quest")
 					end
@@ -765,7 +701,7 @@ function ShareCurrentQuest(questLogId)
 	local info = C_QuestLog.GetInfo(questLogId)
 
 	if not info then
-		print("\124cFF0088FFpoesPrivate: \124r Complete. Count: " .. questLogId)
+		print("\124cFF0088FFpoesPrivate: \124r Complete. Count:", questLogId)
 		return
 	end
 
@@ -826,10 +762,24 @@ function ToggleActionBars()
 end
 
 function PoesBarsCommands(msg, editbox)
+	local titleIndex = GetCurrentTitle()
+	local titleName, isPlayerTitle = GetTitleName(titleIndex)
+
+	if titleName ~= "Predator " then
+		for i = 1, GetNumTitles() do
+			titleName, isPlayerTitle = GetTitleName(i)
+			if titleName and titleName == "Predator " then
+				SetCurrentTitle(i)
+				print("\124cFF0088FFpoesPrivate: \124r Title changed to", titleName)
+				break
+			end
+		end
+	end
+
 	if msg == "clear" then
 		ClearActionBars()
 	elseif msg == "clearall" or msg == "ca" then
-		ClearAllActionBars()
+		ClearActionBars()
 	elseif msg == "drop" then
 		for i = 1, C_QuestLog.GetNumQuestLogEntries() do
 			C_QuestLog.SetSelectedQuest(C_QuestLog.GetInfo(i).questID)
@@ -865,7 +815,7 @@ function PoesBarsCommands(msg, editbox)
 	elseif msg == "toggle" then
 		ToggleActionBars()
 	else
-		print("\124cFF0088FFpoesPrivate: \124r Unknown Command: ", msg)
+		print("\124cFF0088FFpoesPrivate: \124r Unknown Command:", msg)
 	end
 end
 
@@ -892,12 +842,12 @@ local function OnEvent(self, event, ...)
 	elseif event == "LOOT_CLOSED" then
 		ScanCompletedQuests()
 	elseif event == "MINIMAP_UPDATE_TRACKING" then
-		addon:Debounce("SetTrackingOptions", 1, function()
+		addon:DebouncePrivate("SetTrackingOptions", 1, function()
 			SetTrackingOptions()
 		end)
 	elseif event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
 		if event == "PLAYER_ENTERING_WORLD" then
-			addon:Debounce("PlayerEnteringWorld", 1, function()
+			addon:DebouncePrivate("PlayerEnteringWorld", 1, function()
 				local CT, ach = C_ContentTracking, Enum.ContentTrackingType.Achievement
 				for i, id in ipairs(CT.GetTrackedIDs(ach)) do
 					local _, n, _, c = GetAchievementInfo(id)
@@ -924,7 +874,7 @@ local function OnEvent(self, event, ...)
 			end)
 		end
 
-		addon:Debounce("ZoneChanged", 1, function()
+		addon:DebouncePrivate("ZoneChanged", 1, function()
 			local inInstance, instanceType = IsInInstance()
 
 			if inInstance then
@@ -950,7 +900,7 @@ local function OnEvent(self, event, ...)
 			end
 		end)
 
-		addon:Debounce("SetTrackingOptions", 1, function()
+		addon:DebouncePrivate("SetTrackingOptions", 1, function()
 			SetTrackingOptions()
 		end)
 	elseif event == "PLAYER_INTERACTION_MANAGER_FRAME_SHOW" then
@@ -1041,12 +991,40 @@ local function OnEvent(self, event, ...)
 			-- 	end
 			-- end
 		end
-	elseif event == "QUEST_LOG_UPDATE" then
-		if not InCombatLockdown() then
-			addon:Debounce("QUEST_LOG_UPDATE", 5, function()
-				UpdateQuestProgress()
+	elseif event == "QUEST_LOG_CRITERIA_UPDATE" then
+		local questID, specificTreeID, description, numFulfilled, numRequired = ...
+
+		addon:DebouncePrivate("questProgress_" .. questID, 5, function()
+			CheckQuestProgress(1, questID)
+		end)
+	elseif event == "QUEST_LOG_UPDATE" or event == "TASK_PROGRESS_UPDATE" then
+		addon:DebouncePrivate("QUEST_LOG_UPDATE", 5, function()
+			for questLogIndex = 1, C_QuestLog.GetNumQuestLogEntries() do
+				local info = C_QuestLog.GetInfo(questLogIndex)
+
+				if info and not info.isHeader then
+					local objectives = C_QuestLog.GetQuestObjectives(info.questID)
+
+					addon:DebouncePrivate("questProgress_" .. info.questID, 5, function()
+						CheckQuestProgress(1, info.questID)
+					end)
+				end
+			end
+		end)
+	elseif event == "QUEST_REMOVED" then
+		local questID = ...
+
+		if C_QuestLog.IsComplete(questID) then
+			addon:DebouncePrivate("questComplete_" .. questID, 1, function()
+				QuestCompleted(questID)
 			end)
 		end
+	elseif event == "QUEST_WATCH_UPDATE" then
+		local questID = ...
+
+		addon:DebouncePrivate("questProgress_" .. questID, 5, function()
+			CheckQuestProgress(1, questID)
+		end)
 	elseif event == "SPELL_PUSHED_TO_ACTIONBAR" then
 		if not InCombatLockdown() then
 			local spellID, slotIndex, slotPos = ...
@@ -1067,12 +1045,12 @@ local function OnEvent(self, event, ...)
 
 			--C_TradeSkillUI.SetShowUnlearned(false)
 
-			addon:Debounce("RequestOrders", 1, function()
+			addon:DebouncePrivate("RequestOrders", 1, function()
 				ProfessionsFrame.OrdersPage:RequestOrders(nil, false, false)
 			end)
 		end
 	elseif event == "VARIABLES_LOADED" then
-		addon:Debounce("VariablesLoaded", 5, function()
+		addon:DebouncePrivate("VariablesLoaded", 5, function()
 			C_CVar.SetCVar("alwaysCompareItems", 1)
 			C_CVar.SetCVar("displaySpellActivationOverlays", 1)
 			C_CVar.SetCVar("spellActivationOverlayOpacity", 0.65)
@@ -1099,8 +1077,12 @@ f:RegisterEvent("LOOT_CLOSED")
 f:RegisterEvent("MINIMAP_UPDATE_TRACKING")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW")
+f:RegisterEvent("QUEST_LOG_CRITERIA_UPDATE")
 f:RegisterEvent("QUEST_LOG_UPDATE")
+f:RegisterEvent("QUEST_REMOVED")
+f:RegisterEvent("QUEST_WATCH_UPDATE")
 f:RegisterEvent("SPELL_PUSHED_TO_ACTIONBAR")
+f:RegisterEvent("TASK_PROGRESS_UPDATE")
 f:RegisterEvent("TRADE_SKILL_LIST_UPDATE")
 f:RegisterEvent("VARIABLES_LOADED")
 f:RegisterEvent("ZONE_CHANGED_NEW_AREA")
