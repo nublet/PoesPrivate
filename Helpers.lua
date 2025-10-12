@@ -5,13 +5,16 @@ local cooldownMinimum = 0.05
 local cooldownQueue = {}
 
 function addon:DebouncePrivate(key, delay, func)
-	if type(delay) ~= "number" or delay ~= delay then
-		delay = 3
-	elseif delay < cooldownMinimum then
-		delay = cooldownMinimum
-	elseif delay > cooldownMaximum then
-		delay = cooldownMaximum
+	if InCombatLockdown() then
+		return
 	end
+
+	if type(func) ~= "function" then
+		return
+	end
+
+	delay = tonumber(delay) or 3
+	delay = math.min(math.max(delay, cooldownMinimum), cooldownMaximum)
 
 	local entry = cooldownQueue[key]
 
@@ -29,10 +32,7 @@ function addon:DebouncePrivate(key, delay, func)
 
 		cooldownQueue[key] = nil
 
-		local ok, err = pcall(func)
-		if not ok then
-			geterrorhandler()(err)
-		end
+		func()
 	end)
 end
 
@@ -68,4 +68,20 @@ function addon:GetWarbankItems(itemID)
 	end
 
 	return count, slots
+end
+
+function addon:IsAutoOpenItem(itemInfo)
+	local bagItemName = C_Item.GetItemNameByID(itemInfo.itemID)
+
+	for itemID, itemName in pairs(addon.autoOpenItems) do
+		if itemInfo.itemID == itemID then
+			return true
+		end
+
+		if bagItemName and bagItemName == itemName then
+			return true
+		end
+	end
+
+	return false
 end

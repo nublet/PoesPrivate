@@ -44,7 +44,6 @@ local function CheckQuestProgress(attemptNumber, questID)
 
 	questTable.isComplete = true
 
-	local isNew = false
 	local wasUpdated = false
 
 	for index, objective in ipairs(objectives) do
@@ -69,12 +68,8 @@ local function CheckQuestProgress(attemptNumber, questID)
 			NewQuestValue = ""
 		end
 
-		if OldQuestValue == "" then
-			isNew = true
-		else
-			if OldQuestValue ~= NewQuestValue then
-				wasUpdated = true
-			end
+		if OldQuestValue ~= "" and OldQuestValue ~= NewQuestValue then
+			wasUpdated = true
 		end
 
 		questTable.questValues[objectiveKey] = NewQuestValue
@@ -91,8 +86,6 @@ local function CheckQuestProgress(attemptNumber, questID)
 	elseif wasUpdated then
 		C_QuestLog.AddQuestWatch(questID)
 		C_QuestLog.SetSelectedQuest(questID)
-	elseif isNew then
-		C_QuestLog.RemoveQuestWatch(questID)
 	end
 
 	questInformation[questID] = questTable
@@ -265,6 +258,24 @@ local function ExportToys()
 	print("\124cFF0088FFpoesPrivate: \124r ExportToys Complete.")
 end
 
+local function OpenBagItem(attempts, bagID, slotID)
+	if InCombatLockdown() then
+		return
+	end
+
+	local containerItemInfo = C_Container.GetContainerItemInfo(bagID, slotID)
+
+	if containerItemInfo and not containerItemInfo.isLocked then
+		C_Container.UseContainerItem(bagID, slotID)
+	elseif attempts > 5 then
+		return
+	else
+		addon:DebouncePrivate("openBagItem_" .. bagID .. "_" .. slotID, 1, function()
+			OpenBagItem(attempts + 1, bagID, slotID)
+		end)
+	end
+end
+
 function ClearActionBars()
 	for i = 1, 180 do
 		PickupAction(i)
@@ -356,10 +367,12 @@ function LoadActionBars()
 	LoadMacro(36, "ClearTarget")
 	-- Action Bar 5
 	LoadMacro(37, "ResetInstances")
+	LoadSpell(39, 1236723)
 	LoadSpell(40, 13262)
 	-- Action Bar 6
 	LoadMacro(145, "LFGTeleport")
 	LoadMacro(146, "FocusMark")
+	LoadMacro(147, "_LegionRemix")
 	LoadSpell(148, 390392) -- Herbalism
 	LoadSpell(148, 442615) -- Skinning
 	LoadSpell(148, 388213) -- Mining
@@ -544,6 +557,27 @@ function MarkParty()
 	end
 end
 
+function ScanBagItems()
+	if InCombatLockdown() then
+		return
+	end
+
+	for bagID = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
+		local numSlots = C_Container.GetContainerNumSlots(bagID)
+
+		for slotID = 1, numSlots do
+			local itemInfo = C_Container.GetContainerItemInfo(bagID, slotID)
+
+			if itemInfo and not itemInfo.isLocked then
+				if addon:IsAutoOpenItem(itemInfo) then
+					OpenBagItem(1, bagID, slotID)
+					return
+				end
+			end
+		end
+	end
+end
+
 function ScanCompletedQuests()
 	local knownQuestIDs = {
 		82939, -- Fungal Folly
@@ -674,7 +708,7 @@ function SetTrackingOptions()
 				elseif info.name == "Warband Completed Quests" then
 					shouldEnable = true;
 				elseif info.name == "Sense Undead" then
-					shouldEnable = true;
+					-- shouldEnable = true;
 				elseif info.name == "Track Beasts" then
 				elseif info.name == "Track Dragonkin" then
 				elseif info.name == "Track Elementals" then
@@ -805,10 +839,28 @@ function PoesBarsCommands(msg, editbox)
 		LoadActionBars()
 	elseif msg == "mark" then
 		MarkParty()
+	elseif msg == "open" then
+		ScanBagItems()
 	elseif msg == "reset" then
 		SetProfiles("Poesboi")
 		ClearActionBars()
 		LoadActionBars()
+	elseif msg == "setBuddy" then
+		local castTarget = GetUnitName("mouseover", true) or GetUnitName("target", true) or GetUnitName("party1", true)
+		if not castTarget then
+			castTarget = "player"
+		end
+
+		local spellName = C_Spell.GetSpellName(10060)
+		local text = '#showtooltip ' .. spellName .. string.char(10) .. "/cast [@mouseover,exists,help][@" .. castTarget .. ",exists,help][@focus, exists, help][] " .. spellName
+
+		local macroSlot = GetMacroIndexByName("PiBuddy")
+		if macroSlot and macroSlot > 0 then
+			EditMacro(macroSlot, "PiBuddy", 135939, text)
+		else
+			CreateMacro("PiBuddy", 135939, text)
+		end
+		print("\124cFF0088FFpoesPrivate: \124r PiBuddy set to " .. castTarget)
 	elseif msg == "share" then
 		print("\124cFF0088FFpoesPrivate: \124r Sharing Quests...")
 		ShareCurrentQuest(1)
@@ -839,8 +891,11 @@ local function OnEvent(self, event, ...)
 				end
 			end
 		end
-	elseif event == "LOOT_CLOSED" then
-		ScanCompletedQuests()
+	elseif event == "LOOT_CLOSED" or event == "QUEST_TURNED_IN" then
+		addon:DebouncePrivate("lootClosed", 3, function()
+			ScanCompletedQuests()
+			ScanBagItems()
+		end)
 	elseif event == "MINIMAP_UPDATE_TRACKING" then
 		addon:DebouncePrivate("SetTrackingOptions", 1, function()
 			SetTrackingOptions()
@@ -883,18 +938,12 @@ local function OnEvent(self, event, ...)
 				elseif instanceType == "scenario" then
 					local macroSlot = GetMacroIndexByName("Misdirection")
 					if macroSlot and macroSlot > 0 then
-						EditMacro(macroSlot, "Misdirection", 132180,
-							"#showtooltip" ..
-							string.char(10) ..
-							"/cast [@mouseover, exists, help][@focus, exists, help][@Brann Bronzebeard, exists, help][@Pet, nodead, exists][] Misdirection")
+						EditMacro(macroSlot, "Misdirection", 132180, "#showtooltip" .. string.char(10) .. "/cast [@mouseover, exists, help][@focus, exists, help][@Brann Bronzebeard, exists, help][@Pet, nodead, exists][] Misdirection")
 					end
 
 					macroSlot = GetMacroIndexByName("Tricks")
 					if macroSlot and macroSlot > 0 then
-						EditMacro(macroSlot, "Tricks", 134400,
-							"#showtooltip" ..
-							string.char(10) ..
-							"/cast [@mouseover, exists, help][@focus, exists, help][@Brann Bronzebeard, exists, help][@Pet, nodead, exists][] Tricks of the Trade")
+						EditMacro(macroSlot, "Tricks", 134400, "#showtooltip" .. string.char(10) .. "/cast [@mouseover, exists, help][@focus, exists, help][@Brann Bronzebeard, exists, help][@Pet, nodead, exists][] Tricks of the Trade")
 					end
 				end
 			end
@@ -1080,6 +1129,7 @@ f:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW")
 f:RegisterEvent("QUEST_LOG_CRITERIA_UPDATE")
 f:RegisterEvent("QUEST_LOG_UPDATE")
 f:RegisterEvent("QUEST_REMOVED")
+f:RegisterEvent("QUEST_TURNED_IN")
 f:RegisterEvent("QUEST_WATCH_UPDATE")
 f:RegisterEvent("SPELL_PUSHED_TO_ACTIONBAR")
 f:RegisterEvent("TASK_PROGRESS_UPDATE")
