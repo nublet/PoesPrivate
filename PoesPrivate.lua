@@ -5,7 +5,7 @@ local completedQuestsIsFirst = true
 local questInformation = {}
 local ordersUpdated = false
 
-local function QuestCompleted(questID)
+local function CheckCompletedQuest(questID)
 	local questTitle = C_QuestLog.GetTitleForQuestID(questID)
 	local chatMessage = "Quest completed: [" .. questID .. "] " .. questTitle
 
@@ -26,7 +26,7 @@ local function CheckQuestProgress(attemptNumber, questID)
 			return
 		end
 
-		addon:DebouncePrivate("questProgress_" .. questID, 5, function()
+		addon:Debounce("questProgress_" .. questID, 5, function()
 			CheckQuestProgress(attemptNumber + 1, questID)
 		end)
 
@@ -76,8 +76,8 @@ local function CheckQuestProgress(attemptNumber, questID)
 	end
 
 	if questTable.isComplete and wasUpdated then
-		addon:DebouncePrivate("questComplete_" .. questID, 1, function()
-			QuestCompleted(questID)
+		addon:Debounce("checkCompletedQuest_" .. questID, 1, function()
+			CheckCompletedQuest(questID)
 		end)
 	end
 
@@ -256,24 +256,6 @@ local function ExportToys()
 	end
 
 	print("\124cFF0088FFpoesPrivate: \124r ExportToys Complete.")
-end
-
-local function OpenBagItem(attempts, bagID, slotID)
-	if InCombatLockdown() then
-		return
-	end
-
-	local containerItemInfo = C_Container.GetContainerItemInfo(bagID, slotID)
-
-	if containerItemInfo and not containerItemInfo.isLocked then
-		C_Container.UseContainerItem(bagID, slotID)
-	elseif attempts > 5 then
-		return
-	else
-		addon:DebouncePrivate("openBagItem_" .. bagID .. "_" .. slotID, 1, function()
-			OpenBagItem(attempts + 1, bagID, slotID)
-		end)
-	end
 end
 
 function ClearActionBars()
@@ -563,14 +545,30 @@ function ScanBagItems()
 	end
 
 	for bagID = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
-		local numSlots = C_Container.GetContainerNumSlots(bagID)
-
-		for slotID = 1, numSlots do
+		for slotID = 1, C_Container.GetContainerNumSlots(bagID) do
 			local itemInfo = C_Container.GetContainerItemInfo(bagID, slotID)
-
 			if itemInfo and not itemInfo.isLocked then
+				if itemInfo.hasLoot then
+					C_Timer.After(0.5, function()
+						if InCombatLockdown() then
+							return
+						end
+
+						C_Container.UseContainerItem(bagID, slotID)
+					end)
+
+					return
+				end
+
 				if addon:IsAutoOpenItem(itemInfo) then
-					OpenBagItem(1, bagID, slotID)
+					C_Timer.After(0.5, function()
+						if InCombatLockdown() then
+							return
+						end
+
+						C_Container.UseContainerItem(bagID, slotID)
+					end)
+
 					return
 				end
 			end
@@ -876,7 +874,14 @@ SLASH_PB1 = "/pb"
 SlashCmdList["PB"] = PoesBarsCommands
 
 local function OnEvent(self, event, ...)
-	if event == "CHAT_MSG_COMBAT_FACTION_CHANGE" then
+	if event == "BAG_UPDATE_DELAYED" then
+		addon:Debounce("scanBagItems", 1.5, function()
+			ScanBagItems()
+		end)
+		addon:Debounce("scanCompletedQuests", 5, function()
+			ScanCompletedQuests()
+		end)
+	elseif event == "CHAT_MSG_COMBAT_FACTION_CHANGE" then
 		local msg = ...
 		local factionName = msg:lower():match("reputation with (.+) increased")
 
@@ -891,18 +896,13 @@ local function OnEvent(self, event, ...)
 				end
 			end
 		end
-	elseif event == "LOOT_CLOSED" or event == "QUEST_TURNED_IN" then
-		addon:DebouncePrivate("lootClosed", 3, function()
-			ScanCompletedQuests()
-			ScanBagItems()
-		end)
 	elseif event == "MINIMAP_UPDATE_TRACKING" then
-		addon:DebouncePrivate("SetTrackingOptions", 1, function()
+		addon:Debounce("SetTrackingOptions", 1, function()
 			SetTrackingOptions()
 		end)
 	elseif event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
 		if event == "PLAYER_ENTERING_WORLD" then
-			addon:DebouncePrivate("PlayerEnteringWorld", 1, function()
+			addon:Debounce("PlayerEnteringWorld", 1, function()
 				local CT, ach = C_ContentTracking, Enum.ContentTrackingType.Achievement
 				for i, id in ipairs(CT.GetTrackedIDs(ach)) do
 					local _, n, _, c = GetAchievementInfo(id)
@@ -929,7 +929,7 @@ local function OnEvent(self, event, ...)
 			end)
 		end
 
-		addon:DebouncePrivate("ZoneChanged", 1, function()
+		addon:Debounce("ZoneChanged", 1, function()
 			local inInstance, instanceType = IsInInstance()
 
 			if inInstance then
@@ -949,7 +949,7 @@ local function OnEvent(self, event, ...)
 			end
 		end)
 
-		addon:DebouncePrivate("SetTrackingOptions", 1, function()
+		addon:Debounce("SetTrackingOptions", 1, function()
 			SetTrackingOptions()
 		end)
 	elseif event == "PLAYER_INTERACTION_MANAGER_FRAME_SHOW" then
@@ -1043,18 +1043,18 @@ local function OnEvent(self, event, ...)
 	elseif event == "QUEST_LOG_CRITERIA_UPDATE" then
 		local questID, specificTreeID, description, numFulfilled, numRequired = ...
 
-		addon:DebouncePrivate("questProgress_" .. questID, 5, function()
+		addon:Debounce("questProgress_" .. questID, 5, function()
 			CheckQuestProgress(1, questID)
 		end)
 	elseif event == "QUEST_LOG_UPDATE" or event == "TASK_PROGRESS_UPDATE" then
-		addon:DebouncePrivate("QUEST_LOG_UPDATE", 5, function()
+		addon:Debounce("QUEST_LOG_UPDATE", 5, function()
 			for questLogIndex = 1, C_QuestLog.GetNumQuestLogEntries() do
 				local info = C_QuestLog.GetInfo(questLogIndex)
 
 				if info and not info.isHeader then
 					local objectives = C_QuestLog.GetQuestObjectives(info.questID)
 
-					addon:DebouncePrivate("questProgress_" .. info.questID, 5, function()
+					addon:Debounce("questProgress_" .. info.questID, 5, function()
 						CheckQuestProgress(1, info.questID)
 					end)
 				end
@@ -1064,14 +1064,18 @@ local function OnEvent(self, event, ...)
 		local questID = ...
 
 		if C_QuestLog.IsComplete(questID) then
-			addon:DebouncePrivate("questComplete_" .. questID, 1, function()
-				QuestCompleted(questID)
+			addon:Debounce("checkCompletedQuest_" .. questID, 1, function()
+				CheckCompletedQuest(questID)
 			end)
 		end
+	elseif event == "QUEST_TURNED_IN" then
+		addon:Debounce("scanBagItems", 1.5, function()
+			ScanBagItems()
+		end)
 	elseif event == "QUEST_WATCH_UPDATE" then
 		local questID = ...
 
-		addon:DebouncePrivate("questProgress_" .. questID, 5, function()
+		addon:Debounce("questProgress_" .. questID, 5, function()
 			CheckQuestProgress(1, questID)
 		end)
 	elseif event == "SPELL_PUSHED_TO_ACTIONBAR" then
@@ -1094,12 +1098,12 @@ local function OnEvent(self, event, ...)
 
 			--C_TradeSkillUI.SetShowUnlearned(false)
 
-			addon:DebouncePrivate("RequestOrders", 1, function()
+			addon:Debounce("RequestOrders", 1, function()
 				ProfessionsFrame.OrdersPage:RequestOrders(nil, false, false)
 			end)
 		end
 	elseif event == "VARIABLES_LOADED" then
-		addon:DebouncePrivate("VariablesLoaded", 5, function()
+		addon:Debounce("VariablesLoaded", 5, function()
 			C_CVar.SetCVar("alwaysCompareItems", 1)
 			C_CVar.SetCVar("displaySpellActivationOverlays", 1)
 			C_CVar.SetCVar("spellActivationOverlayOpacity", 0.65)
@@ -1121,8 +1125,8 @@ local function OnEvent(self, event, ...)
 end
 
 local f = CreateFrame("Frame")
+f:RegisterEvent("BAG_UPDATE_DELAYED")
 f:RegisterEvent("CHAT_MSG_COMBAT_FACTION_CHANGE")
-f:RegisterEvent("LOOT_CLOSED")
 f:RegisterEvent("MINIMAP_UPDATE_TRACKING")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW")

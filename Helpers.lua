@@ -1,39 +1,35 @@
 local addonName, addon = ...
 
-local cooldownMaximum = 120 -- 2 Minutes
-local cooldownMinimum = 0.05
-local cooldownQueue = {}
+local debounceMaximum = 120 -- 2 Minutes
+local debounceMinimum = 0.05
+local debounceQueue = {}
 
-function addon:DebouncePrivate(key, delay, func)
-	if InCombatLockdown() then
-		return
-	end
+function addon:Debounce(key, delay, func)
+    if InCombatLockdown() then
+        return
+    end
 
-	if type(func) ~= "function" then
-		return
-	end
+    delay = tonumber(delay) or 3
+    delay = math.min(math.max(delay, debounceMinimum), debounceMaximum)
 
-	delay = tonumber(delay) or 3
-	delay = math.min(math.max(delay, cooldownMinimum), cooldownMaximum)
+    local entry = debounceQueue[key]
 
-	local entry = cooldownQueue[key]
+    if entry and entry.timer then
+        entry.timer.cancelled = true
+    end
 
-	if entry and entry.timer then
-		entry.timer.cancelled = true
-	end
+    entry = { cancelled = false }
+    debounceQueue[key] = entry
 
-	entry = { cancelled = false }
-	cooldownQueue[key] = entry
+    C_Timer.After(delay, function()
+        if debounceQueue[key] == nil or entry.cancelled then
+            return
+        end
 
-	C_Timer.After(delay, function()
-		if entry.cancelled then
-			return
-		end
+        debounceQueue[key] = nil
 
-		cooldownQueue[key] = nil
-
-		func()
-	end)
+        func()
+    end)
 end
 
 function addon:GetBagItems(itemID)

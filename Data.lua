@@ -8,6 +8,8 @@ addon.keepItems = {
 
 addon.autoOpenItems = {
 	[237812] = "Cache of Infinite Treasure",
+	[244842] = "Fabled Veteran's Cache",
+	[244865] = "Pinnacle Cache",
 	[245553] = "Heroic Cache of Infinite Treasure",
 	-- [245925] = "Artifactium Sand",
 	[246813] = "Greater Bronze Cache",
@@ -16,4 +18,5 @@ addon.autoOpenItems = {
 	-- [249891] = "Mound of Artifactium Sand",
 	[251821] = "Cache of Infinite Power",
 	[254847] = "Minor Bronze Cache",
+	[255676] = "Phase Diver's Cache",
 }
