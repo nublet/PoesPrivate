@@ -540,6 +540,10 @@ function MarkParty()
 end
 
 function ScanBagItems()
+	if UnitOnTaxi("player") then
+		return
+	end
+
 	if InCombatLockdown() then
 		return
 	end
@@ -548,28 +552,30 @@ function ScanBagItems()
 		for slotID = 1, C_Container.GetContainerNumSlots(bagID) do
 			local itemInfo = C_Container.GetContainerItemInfo(bagID, slotID)
 			if itemInfo and not itemInfo.isLocked then
-				if itemInfo.hasLoot then
-					C_Timer.After(0.5, function()
-						if InCombatLockdown() then
-							return
-						end
+				if not addon:IsIgnoredItem(itemInfo) then
+					if itemInfo.hasLoot then
+						C_Timer.After(0.5, function()
+							if InCombatLockdown() then
+								return
+							end
 
-						C_Container.UseContainerItem(bagID, slotID)
-					end)
+							C_Container.UseContainerItem(bagID, slotID)
+						end)
 
-					return
-				end
+						return
+					end
 
-				if addon:IsAutoOpenItem(itemInfo) then
-					C_Timer.After(0.5, function()
-						if InCombatLockdown() then
-							return
-						end
+					if addon:IsAutoOpenItem(itemInfo) then
+						C_Timer.After(0.5, function()
+							if InCombatLockdown() then
+								return
+							end
 
-						C_Container.UseContainerItem(bagID, slotID)
-					end)
+							C_Container.UseContainerItem(bagID, slotID)
+						end)
 
-					return
+						return
+					end
 				end
 			end
 		end
@@ -708,6 +714,7 @@ function SetTrackingOptions()
 				elseif info.name == "Sense Undead" then
 					-- shouldEnable = true;
 				elseif info.name == "Track Beasts" then
+				elseif info.name == "Track Demons" then
 				elseif info.name == "Track Dragonkin" then
 				elseif info.name == "Track Elementals" then
 				elseif info.name == "Track Giants" then

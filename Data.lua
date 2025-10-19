@@ -20,3 +20,8 @@ addon.autoOpenItems = {
 	[254847] = "Minor Bronze Cache",
 	[255676] = "Phase Diver's Cache",
 }
+
+addon.ignoredItems = {
+	[245925] = "Artifactium Sand",
+	[249891] = "Mound of Artifactium Sand",
+}

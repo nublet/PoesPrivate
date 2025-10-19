@@ -4,32 +4,67 @@ local debounceMaximum = 120 -- 2 Minutes
 local debounceMinimum = 0.05
 local debounceQueue = {}
 
+local function SafeCall(func, ...)
+	if InCombatLockdown() then
+		return false, "InCombatLockdown"
+	end
+	local ok, err = pcall(func, ...)
+	if not ok then
+		if err and not err:match("ADDON_ACTION_BLOCKED") then
+			geterrorhandler()(err)
+		end
+	end
+	return ok, err
+end
+
 function addon:Debounce(key, delay, func)
-    if InCombatLockdown() then
-        return
-    end
+	local entry      = debounceQueue[key]
+	local queueCalls = entry and entry.queueCalls + 1 or 1
 
-    delay = tonumber(delay) or 3
-    delay = math.min(math.max(delay, debounceMinimum), debounceMaximum)
+	if entry then
+		entry.isCancelled = true
+		if entry.timer then
+			entry.timer:Cancel()
+		end
+	end
 
-    local entry = debounceQueue[key]
+	if queueCalls > 5 then
+		debounceQueue[key] = nil
 
-    if entry and entry.timer then
-        entry.timer.cancelled = true
-    end
+		if InCombatLockdown() then
+			return
+		end
 
-    entry = { cancelled = false }
-    debounceQueue[key] = entry
+		SafeCall(func)
 
-    C_Timer.After(delay, function()
-        if debounceQueue[key] == nil or entry.cancelled then
-            return
-        end
+		return
+	end
 
-        debounceQueue[key] = nil
+	delay = tonumber(delay) or 3
+	delay = math.min(math.max(delay, debounceMinimum), debounceMaximum)
 
-        func()
-    end)
+	entry = {
+		isCancelled = false,
+		queueCalls = queueCalls
+	}
+
+	entry.timer = C_Timer.NewTimer(delay, function()
+		local existing = debounceQueue[key]
+
+		debounceQueue[key] = nil
+
+		if existing == nil or entry.isCancelled then
+			return
+		end
+
+		if InCombatLockdown() then
+			return
+		end
+
+		SafeCall(func)
+	end)
+
+	debounceQueue[key] = entry
 end
 
 function addon:GetBagItems(itemID)
@@ -70,6 +105,22 @@ function addon:IsAutoOpenItem(itemInfo)
 	local bagItemName = C_Item.GetItemNameByID(itemInfo.itemID)
 
 	for itemID, itemName in pairs(addon.autoOpenItems) do
+		if itemInfo.itemID == itemID then
+			return true
+		end
+
+		if bagItemName and bagItemName == itemName then
+			return true
+		end
+	end
+
+	return false
+end
+
+function addon:IsIgnoredItem(itemInfo)
+	local bagItemName = C_Item.GetItemNameByID(itemInfo.itemID)
+
+	for itemID, itemName in pairs(addon.ignoredItems) do
 		if itemInfo.itemID == itemID then
 			return true
 		end
