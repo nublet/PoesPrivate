@@ -132,3 +132,15 @@ function addon:IsIgnoredItem(itemInfo)
 
 	return false
 end
+
+function addon:NormalizeText(text)
+	if not text then
+		return ""
+	end
+
+	if text == "" then
+		return ""
+	end
+
+	return text:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
+end

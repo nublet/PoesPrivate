@@ -39,7 +39,10 @@
     "LE_PARTY_CATEGORY_INSTANCE",
     "LE_PARTY_CATEGORY_HOME",
     "GetUnitName",
-    "NUM_TOTAL_EQUIPPED_BAG_SLOTS"
+    "NUM_TOTAL_EQUIPPED_BAG_SLOTS",
+    "UnregisterAttributeDriver",
+    "StaticPopupDialogs",
+    "StaticPopup_Show"
   ],
   "Lua.runtime.version": "Lua 5.1",
   "Lua.runtime.builtin": {

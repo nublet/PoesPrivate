@@ -2,8 +2,23 @@ local addonName, addon = ...
 
 local completedQuests = {}
 local completedQuestsIsFirst = true
+local inviteWords = { "123", "inv", "invite" }
 local questInformation = {}
 local ordersUpdated = false
+
+StaticPopupDialogs["MY_AUTO_INVITE"] = {
+	text = "%s wants to join. Invite?",
+	button1 = "Invite",
+	button2 = "Cancel",
+	OnAccept = function(self, data)
+		if data then
+			C_PartyInfo.InviteUnit(Ambiguate(data, "short"))
+		end
+	end,
+	timeout = 10,
+	whileDead = true,
+	hideOnEscape = true,
+}
 
 local function CheckCompletedQuest(questID)
 	local questTitle = C_QuestLog.GetTitleForQuestID(questID)
@@ -888,6 +903,23 @@ local function OnEvent(self, event, ...)
 		addon:Debounce("scanCompletedQuests", 5, function()
 			ScanCompletedQuests()
 		end)
+	elseif event == "CHAT_MSG_BN_WHISPER" or event == "CHAT_MSG_WHISPER" then
+		local text, playerName, languageName, channelName, playerName2, specialFlags, zoneChannelID, channelIndex, channelBaseName, languageID, lineID, guid, bnSenderID, isMobile, isSubtitle, hideSenderInLetterbox, suppressRaidIcons = ...
+		if not text then
+			return
+		end
+
+		text = addon:NormalizeText(text)
+
+		for _, word in ipairs(inviteWords) do
+			word = addon:NormalizeText(word)
+
+			if text == word then
+				StaticPopup_Show("MY_AUTO_INVITE", playerName, nil, playerName)
+
+				return
+			end
+		end
 	elseif event == "CHAT_MSG_COMBAT_FACTION_CHANGE" then
 		local msg = ...
 		local factionName = msg:lower():match("reputation with (.+) increased")
@@ -1127,13 +1159,17 @@ local function OnEvent(self, event, ...)
 
 			ScanCompletedQuests()
 			ToggleActionBars()
+
+			addon:InitializeSpinner()
 		end)
 	end
 end
 
 local f = CreateFrame("Frame")
 f:RegisterEvent("BAG_UPDATE_DELAYED")
+f:RegisterEvent("CHAT_MSG_BN_WHISPER")
 f:RegisterEvent("CHAT_MSG_COMBAT_FACTION_CHANGE")
+f:RegisterEvent("CHAT_MSG_WHISPER")
 f:RegisterEvent("MINIMAP_UPDATE_TRACKING")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW")
