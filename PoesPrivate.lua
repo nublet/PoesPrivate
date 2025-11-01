@@ -22,10 +22,18 @@ StaticPopupDialogs["MY_AUTO_INVITE"] = {
 
 local function CheckCompletedQuest(questID)
 	local questTitle = C_QuestLog.GetTitleForQuestID(questID)
-	local chatMessage = "Quest completed: [" .. questID .. "] " .. questTitle
+	local chatMessage = ""
 
-	if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+	if questTitle and questTitle ~= "" then
+		chatMessage = "Quest completed: [" .. questID .. "] " .. questTitle
+	else
+		chatMessage = "Quest completed: [" .. questID .. "]"
+	end
+
+	if IsInRaid(LE_PARTY_CATEGORY_INSTANCE) or IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
 		C_ChatInfo.SendChatMessage(chatMessage, "INSTANCE_CHAT")
+	elseif IsInRaid(LE_PARTY_CATEGORY_HOME) then
+		C_ChatInfo.SendChatMessage(chatMessage, "RAID")
 	elseif IsInGroup(LE_PARTY_CATEGORY_HOME) then
 		C_ChatInfo.SendChatMessage(chatMessage, "PARTY")
 	else
@@ -1159,8 +1167,6 @@ local function OnEvent(self, event, ...)
 
 			ScanCompletedQuests()
 			ToggleActionBars()
-
-			addon:InitializeSpinner()
 		end)
 	end
 end

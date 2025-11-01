@@ -42,7 +42,8 @@
     "NUM_TOTAL_EQUIPPED_BAG_SLOTS",
     "UnregisterAttributeDriver",
     "StaticPopupDialogs",
-    "StaticPopup_Show"
+    "StaticPopup_Show",
+    "ChatFrame_AddMessageEventFilter"
   ],
   "Lua.runtime.version": "Lua 5.1",
   "Lua.runtime.builtin": {

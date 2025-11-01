@@ -84,6 +84,16 @@ function addon:GetBagItems(itemID)
 	return count, slots
 end
 
+function addon:GetNumberOrDefault(defaultValue, number)
+	local valueNumber = addon:NormalizeNumber(number)
+
+	if valueNumber then
+		return valueNumber
+	end
+
+	return defaultValue
+end
+
 function addon:GetWarbankItems(itemID)
 	local bankInfo = C_Bank.FetchDepositedItems(Enum.BankType.Account)
 	local count = 0
@@ -131,6 +141,26 @@ function addon:IsIgnoredItem(itemInfo)
 	end
 
 	return false
+end
+
+function addon:NormalizeNumber(number)
+	local valueString = ""
+
+	if number then
+		valueString = strtrim(number)
+	end
+
+	if valueString == "" then
+		return -1
+	end
+
+	local valueNumber = tonumber(number) or -1
+
+	if valueNumber < 0 then
+		return -1
+	end
+
+	return valueNumber
 end
 
 function addon:NormalizeText(text)

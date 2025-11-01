@@ -1,4 +1,4 @@
-## Interface: 110200
+## Interface: 110205
 ## Title: PoesPrivate
 ## Description: Private functions and helpers
 ## Notes: Private
@@ -10,7 +10,5 @@
 
 Data.lua
 Helpers.lua
-
-SpinMeBaby.lua
 
 PoesPrivate.lua
