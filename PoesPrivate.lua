@@ -30,15 +30,15 @@ local function CheckCompletedQuest(questID)
 		chatMessage = "Quest completed: [" .. questID .. "]"
 	end
 
-	if IsInRaid(LE_PARTY_CATEGORY_INSTANCE) or IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
-		C_ChatInfo.SendChatMessage(chatMessage, "INSTANCE_CHAT")
-	elseif IsInRaid(LE_PARTY_CATEGORY_HOME) then
-		C_ChatInfo.SendChatMessage(chatMessage, "RAID")
-	elseif IsInGroup(LE_PARTY_CATEGORY_HOME) then
-		C_ChatInfo.SendChatMessage(chatMessage, "PARTY")
-	else
-		C_ChatInfo.SendChatMessage(chatMessage, "SAY")
-	end
+	--if IsInRaid(LE_PARTY_CATEGORY_INSTANCE) or IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+	--C_ChatInfo.SendChatMessage(chatMessage, "INSTANCE_CHAT")
+	--elseif IsInRaid(LE_PARTY_CATEGORY_HOME) then
+	--C_ChatInfo.SendChatMessage(chatMessage, "RAID")
+	--elseif IsInGroup(LE_PARTY_CATEGORY_HOME) then
+	--C_ChatInfo.SendChatMessage(chatMessage, "PARTY")
+	--else
+	C_ChatInfo.SendChatMessage(chatMessage, "SAY")
+	--end
 end
 
 local function CheckQuestProgress(attemptNumber, questID)
@@ -824,16 +824,20 @@ function ToggleActionBars()
 end
 
 function PoesBarsCommands(msg, editbox)
+	local playerName, playerRealm = UnitFullName("player")
 	local titleIndex = GetCurrentTitle()
 	local titleName, isPlayerTitle = GetTitleName(titleIndex)
 
-	if titleName ~= "Predator " then
-		for i = 1, GetNumTitles() do
-			titleName, isPlayerTitle = GetTitleName(i)
-			if titleName and titleName == "Predator " then
-				SetCurrentTitle(i)
-				print("\124cFF0088FFpoesPrivate: \124r Title changed to", titleName)
-				break
+	if playerName == "Trustfall" or playerName == "Glaiveboi" then
+	else
+		if titleName ~= "Predator " then
+			for i = 1, GetNumTitles() do
+				titleName, isPlayerTitle = GetTitleName(i)
+				if titleName and titleName == "Predator " then
+					SetCurrentTitle(i)
+					print("\124cFF0088FFpoesPrivate: \124r Title changed to", titleName)
+					break
+				end
 			end
 		end
 	end
