@@ -1169,6 +1169,10 @@ local function OnEvent(self, event, ...)
 			IconIntroTracker.RegisterEvent = function() end
 			IconIntroTracker:UnregisterEvent('SPELL_PUSHED_TO_ACTIONBAR')
 
+			completedQuests = {}
+			completedQuestsIsFirst = true
+			questInformation = {}
+
 			ScanCompletedQuests()
 			ToggleActionBars()
 		end)
@@ -1198,3 +1202,70 @@ f:SetScript("OnEvent", OnEvent)
 f:SetSize(1, 1)
 f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, 0)
 f:Hide()
+
+
+--[[
+
+local function StripTargetArt(frame)
+    if not frame or frame._stripped then return end
+
+    -- 1. Hide portrait model if still present
+    if frame.portrait then
+        frame.portrait:Hide()
+        frame.portrait.Show = function() end
+    end
+
+    -- 2. Hide class icon texture (Rogue dagger)
+    if frame.classPortrait then
+        frame.classPortrait:Hide()
+        frame.classPortrait.Show = function() end
+    end
+
+    -- 3. Hide elite / rare / quest border ring
+    local ring = frame.portrait and frame.portrait:GetParent() or frame
+    if ring and ring.BorderTexture then
+        ring.BorderTexture:SetTexture("")
+    end
+
+    -- Some builds use alternate artwork region names:
+    for _, region in ipairs({frame.TextureFrame, frame}) do
+        if region then
+            for _, tex in ipairs({ region.Texture, region.Icon, region.Border, region.border, region.Cover }) do
+                if tex and tex.SetTexture then tex:SetTexture("") end
+            end
+        end
+    end
+
+    -- 4. Hide sleep Zzz icon if desired
+    if frame.statusIcon then
+        frame.statusIcon:Hide()
+        frame.statusIcon.Show = function() end
+    end
+
+	for _, region in ipairs({TargetFrame:GetRegions()}) do
+    if region:GetObjectType() == "Texture" then
+        local tex = region:GetTexture()
+        if tex and (
+            tex:find("TargetingFrame%-Elite") or
+            tex:find("TargetingFrame%-Silver") or
+            tex:find("TargetingFrame%-Portrait") or
+            tex:find("UI%-HordeUI%-TargetingFrame")
+        ) then
+            region:SetTexture("")
+        end
+    end
+end
+
+    frame._stripped = true
+end
+
+hooksecurefunc("TargetFrame_Update", function(frame)
+    if frame == TargetFrame then
+        StripTargetArt(frame)
+    end
+end)
+
+-- Initial apply
+StripTargetArt(TargetFrame)
+
+]]
