@@ -801,24 +801,28 @@ function ToggleActionBars()
 	--E.ActionBars:PositionAndSizeBar("bar" .. n)
 	--end
 
-	local bars = { MainMenuBar, MultiBarBottomLeft, MultiBarBottomRight, MultiBarLeft, MultiBarRight, MultiBar5,
-		PetActionBar, StanceBar }
+	local bars = { MainActionBar, MultiBarBottomLeft, MultiBarBottomRight, MultiBarLeft, MultiBarRight, MultiBar5, PetActionBar, StanceBar }
 	local isShown = MultiBarBottomLeft:IsShown()
-	local visibilityMain = isShown and "hide" or "[vehicleui][overridebar][possessbar] hide; show"
+	local visibilityMain = isShown and "[advflyable,mounted][overridebar][possessbar][vehicleui] show; hide" or "show"
 	local visibilityOther = isShown and "hide" or "show"
 
-	for index, bar in ipairs(bars) do
-		UnregisterStateDriver(bar, "visibility")
+	for i = 1, #bars do
+		local bar = bars[i]
 
-		if index == 1 then
-			RegisterStateDriver(bar, "visibility", visibilityMain)
-		else
-			if visibilityOther == "hide" then
-				bar:SetAlpha(0)
+		if bar then
+			UnregisterStateDriver(bar, "visibility")
+
+			if i == 1 then
+				RegisterStateDriver(bar, "visibility", visibilityMain)
 			else
-				bar:SetAlpha(1)
+				if visibilityOther == "hide" then
+					bar:SetAlpha(0)
+				else
+					bar:SetAlpha(1)
+				end
+
+				RegisterStateDriver(bar, "visibility", visibilityOther)
 			end
-			RegisterStateDriver(bar, "visibility", visibilityOther)
 		end
 	end
 end

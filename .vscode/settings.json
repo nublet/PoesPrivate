@@ -43,7 +43,8 @@
     "UnregisterAttributeDriver",
     "StaticPopupDialogs",
     "StaticPopup_Show",
-    "ChatFrame_AddMessageEventFilter"
+    "ChatFrame_AddMessageEventFilter",
+    "OverrideActionBar"
   ],
   "Lua.runtime.version": "Lua 5.1",
   "Lua.runtime.builtin": {
