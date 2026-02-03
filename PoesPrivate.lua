@@ -377,7 +377,7 @@ function LoadActionBars()
 	-- Action Bar 6
 	LoadMacro(145, "LFGTeleport")
 	LoadMacro(146, "FocusMark")
-	LoadMacro(147, "_LegionRemix")
+	-- LoadMacro(147, "_LegionRemix")
 	LoadSpell(148, 390392) -- Herbalism
 	LoadSpell(148, 442615) -- Skinning
 	LoadSpell(148, 388213) -- Mining
@@ -965,6 +965,10 @@ local function OnEvent(self, event, ...)
 						print("\124cFF0088FFpoesPrivate: \124r Clearing completed/tracked achieve:", n)
 						CT.StopTracking(ach, id, 1)
 					end
+				end
+
+				for i = 1, 200000  do
+					C_QuestLog.RemoveQuestWatch(i)
 				end
 
 				for bagID = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
