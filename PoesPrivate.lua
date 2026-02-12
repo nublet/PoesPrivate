@@ -992,9 +992,7 @@ local function OnEvent(self, event, ...)
 			local inInstance, instanceType = IsInInstance()
 
 			if inInstance then
-				if instanceType == "party" then
-					MarkParty()
-				elseif instanceType == "scenario" then
+				if instanceType == "scenario" then
 					local macroSlot = GetMacroIndexByName("Misdirection")
 					if macroSlot and macroSlot > 0 then
 						EditMacro(macroSlot, "Misdirection", 132180, "#showtooltip" .. string.char(10) .. "/cast [@mouseover, exists, help][@focus, exists, help][@Brann Bronzebeard, exists, help][@Pet, nodead, exists][] Misdirection")
