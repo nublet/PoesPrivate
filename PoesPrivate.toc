@@ -4,7 +4,7 @@
 ## Notes: Private
 ## Author: Poesboi
 ## Credits: 
-## Version: 26.0.0.201
+## Version: 26.0.1.201
 ## RequiredDeps: Blizzard_Professions
 ## SavedVariables: PoesBarsMounts, PoesBarsPets, PoesBarsToys, PoesBarsFirstAid, PoesBarsBlacksmithing, PoesBarsLeatherworking, PoesBarsAlchemy, PoesBarsHerbalism, PoesBarsCooking, PoesBarsMining, PoesBarsTailoring, PoesBarsEngineering, PoesBarsEnchanting, PoesBarsFishing, PoesBarsSkinning, PoesBarsJewelcrafting, PoesBarsInscription, PoesBarsArchaeology
 

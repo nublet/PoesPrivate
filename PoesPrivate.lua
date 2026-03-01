@@ -967,7 +967,7 @@ local function OnEvent(self, event, ...)
 					end
 				end
 
-				for i = 1, 200000  do
+				for i = 1, 200000 do
 					C_QuestLog.RemoveQuestWatch(i)
 				end
 
