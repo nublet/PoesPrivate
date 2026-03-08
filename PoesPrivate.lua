@@ -967,10 +967,6 @@ local function OnEvent(self, event, ...)
 					end
 				end
 
-				for i = 1, 200000 do
-					C_QuestLog.RemoveQuestWatch(i)
-				end
-
 				for bagID = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
 					for slotIndex = 1, C_Container.GetContainerNumSlots(bagID) do
 						local itemLink = C_Container.GetContainerItemLink(bagID, slotIndex)
@@ -1038,7 +1034,7 @@ local function OnEvent(self, event, ...)
 				keepCopper = 1500000
 			elseif playerLevel < 70 then
 				keepCopper = 0
-			elseif playerLevel < 80 then
+			elseif playerLevel < 90 then
 				keepCopper = 5000000
 			end
 
