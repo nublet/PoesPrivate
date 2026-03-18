@@ -1034,7 +1034,7 @@ local function OnEvent(self, event, ...)
 				keepCopper = 1500000
 			elseif playerLevel < 70 then
 				keepCopper = 0
-			elseif playerLevel < 90 then
+			elseif playerLevel < 81 then
 				keepCopper = 5000000
 			end
 
