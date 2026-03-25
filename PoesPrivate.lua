@@ -6,6 +6,9 @@ local inviteWords = { "123", "inv", "invite" }
 local questInformation = {}
 local ordersUpdated = false
 
+local LSM = LibStub("LibSharedMedia-3.0")
+LSM:Register("font", "Naowh", [[Interface\AddOns\PoesBars\FONTS\Naowh.ttf]])
+
 StaticPopupDialogs["MY_AUTO_INVITE"] = {
 	text = "%s wants to join. Invite?",
 	button1 = "Invite",
@@ -281,6 +284,24 @@ local function ExportToys()
 	print("\124cFF0088FFpoesPrivate: \124r ExportToys Complete.")
 end
 
+local function IsNix()
+	local playerName, playerRealm = UnitFullName("player")
+
+	if playerName == "Bossdamage" then
+		return true
+	end
+
+	if playerName == "Glaiveboi" then
+		return true
+	end
+
+	if playerName == "Trustfall" then
+		return true
+	end
+
+	return false
+end
+
 function ClearActionBars()
 	for i = 1, 180 do
 		PickupAction(i)
@@ -486,80 +507,6 @@ function LoadToy(actionSlot, toyId)
 	--if GetCursorInfo()then
 	PlaceAction(actionSlot)
 	--end
-end
-
-function MarkParty()
-	local ROLEMARKS = { ["TANK"] = 6, ["HEALER"] = 5 }
-	local role = UnitGroupRolesAssigned("player")
-
-	if role then
-		if ROLEMARKS[role] then
-			SetRaidTarget("player", ROLEMARKS[role])
-		end
-	end
-
-	for i = 1, 4 do
-		local role = UnitGroupRolesAssigned("party" .. i)
-
-		if role then
-			local unit = "party" .. i
-
-			if ROLEMARKS[role] then
-				SetRaidTarget(unit, ROLEMARKS[role])
-
-				local localizedClass, englishClass, classIndex = UnitClass("player")
-				local macroSlot
-
-				if role == "HEALER" then
-					macroSlot = GetMacroIndexByName("Freedom")
-					if macroSlot and macroSlot > 0 then
-						EditMacro(macroSlot, "Freedom", 134400,
-							"#showtooltip" ..
-							string.char(10) ..
-							"/cast [@mouseover, exists, help][@focus, exists, help][@Trustfall, exists][@" ..
-							unit .. ", exists][] Blessing of Freedom")
-					end
-
-					macroSlot = GetMacroIndexByName("Innervate")
-					if macroSlot and macroSlot > 0 then
-						EditMacro(macroSlot, "Innervate", 134400,
-							"#showtooltip" ..
-							string.char(10) ..
-							"/cast [@mouseover, exists, help][@focus, exists, help][@" .. unit .. ", exists][] Innervate")
-					end
-				end
-
-				if role == "TANK" then
-					macroSlot = GetMacroIndexByName("Misdirection")
-					if macroSlot and macroSlot > 0 then
-						EditMacro(macroSlot, "Misdirection", 132180,
-							"#showtooltip" ..
-							string.char(10) ..
-							"/cast [@mouseover, exists, help][@focus, exists, help][@Brann Bronzebeard, exists, help][@" ..
-							unit .. ", exists][@targettarget, exists, help][@Pet, nodead, exists][] Misdirection")
-					end
-
-					macroSlot = GetMacroIndexByName("Sacrifice")
-					if macroSlot and macroSlot > 0 then
-						EditMacro(macroSlot, "Sacrifice", 134400,
-							"#showtooltip" ..
-							string.char(10) ..
-							"/cast [@mouseover, exists, help][@focus, exists, help][@" ..
-							unit .. ", exists][@targettarget, exists, help][] Blessing of Sacrifice")
-					end
-
-					macroSlot = GetMacroIndexByName("Tricks")
-					if macroSlot and macroSlot > 0 then
-						EditMacro(macroSlot, "Tricks", 134400,
-							"#showtooltip" ..
-							string.char(10) ..
-							"/cast [@mouseover, exists, help][@focus, exists, help][@Brann Bronzebeard, exists, help][@" ..
-							unit .. ", exists][@targettarget, exists, help][] Tricks of the Trade")
-					end
-				end
-			end
-		end
-	end
 end
 
 function ScanBagItems()
@@ -825,15 +772,19 @@ function ToggleActionBars()
 			end
 		end
 	end
+
+	MultiBar6:SetAlpha(1)
+	RegisterStateDriver(MultiBar6, "visibility", "show")
+
+	MultiBar7:SetAlpha(1)
+	RegisterStateDriver(MultiBar7, "visibility", "show")
 end
 
 function PoesBarsCommands(msg, editbox)
-	local playerName, playerRealm = UnitFullName("player")
 	local titleIndex = GetCurrentTitle()
 	local titleName, isPlayerTitle = GetTitleName(titleIndex)
 
-	if playerName == "Trustfall" or playerName == "Glaiveboi" then
-	else
+	if IsNix() == false then
 		if titleName ~= "Predator " then
 			for i = 1, GetNumTitles() do
 				titleName, isPlayerTitle = GetTitleName(i)
@@ -873,8 +824,6 @@ function PoesBarsCommands(msg, editbox)
 	elseif msg == "load" then
 		SetProfiles("Poesboi")
 		LoadActionBars()
-	elseif msg == "mark" then
-		MarkParty()
 	elseif msg == "open" then
 		ScanBagItems()
 	elseif msg == "reset" then
@@ -1093,6 +1042,42 @@ local function OnEvent(self, event, ...)
 			-- 	end
 			-- end
 		end
+	elseif event == "PLAYER_LOGIN" then
+		addon:Debounce("PlayerLogin", 5, function()
+			C_CVar.SetCVar("alwaysCompareItems", 1)
+			C_CVar.SetCVar("displaySpellActivationOverlays", 1)
+			C_CVar.SetCVar("spellActivationOverlayOpacity", 0.65)
+
+			C_CVar.RegisterCVar("addonProfilerEnabled", 1)
+			C_CVar.SetCVar("addonProfilerEnabled", 0)
+
+			PetFrame:UnregisterEvent("UNIT_COMBAT")
+			PlayerFrame:UnregisterEvent("UNIT_COMBAT")
+			TargetFrame:UnregisterEvent("UNIT_COMBAT")
+
+			IconIntroTracker.RegisterEvent = function() end
+			IconIntroTracker:UnregisterEvent('SPELL_PUSHED_TO_ACTIONBAR')
+
+			completedQuests = {}
+			completedQuestsIsFirst = true
+			questInformation = {}
+
+			ScanCompletedQuests()
+			ToggleActionBars()
+
+			if IsNix() == false then
+				if SlashCmdList["BUFO"] then
+					SlashCmdList["BUFO"]("-loadprofile poesboi")
+				else
+					-- Fallback: Use the universal macro execution
+					local editBox = ChatEdit_ChooseBoxForSend()
+					ChatEdit_ActivateChat(editBox)
+					editBox:SetText("/bufo -loadprofile poesboi")
+					ChatEdit_SendText(editBox)
+					ChatEdit_DeactivateChat(editBox)
+				end
+			end
+		end)
 	elseif event == "QUEST_LOG_CRITERIA_UPDATE" then
 		local questID, specificTreeID, description, numFulfilled, numRequired = ...
 
@@ -1155,29 +1140,6 @@ local function OnEvent(self, event, ...)
 				ProfessionsFrame.OrdersPage:RequestOrders(nil, false, false)
 			end)
 		end
-	elseif event == "VARIABLES_LOADED" then
-		addon:Debounce("VariablesLoaded", 5, function()
-			C_CVar.SetCVar("alwaysCompareItems", 1)
-			C_CVar.SetCVar("displaySpellActivationOverlays", 1)
-			C_CVar.SetCVar("spellActivationOverlayOpacity", 0.65)
-
-			C_CVar.RegisterCVar("addonProfilerEnabled", 1)
-			C_CVar.SetCVar("addonProfilerEnabled", 0)
-
-			PetFrame:UnregisterEvent("UNIT_COMBAT")
-			PlayerFrame:UnregisterEvent("UNIT_COMBAT")
-			TargetFrame:UnregisterEvent("UNIT_COMBAT")
-
-			IconIntroTracker.RegisterEvent = function() end
-			IconIntroTracker:UnregisterEvent('SPELL_PUSHED_TO_ACTIONBAR')
-
-			completedQuests = {}
-			completedQuestsIsFirst = true
-			questInformation = {}
-
-			ScanCompletedQuests()
-			ToggleActionBars()
-		end)
 	end
 end
 
@@ -1189,6 +1151,7 @@ f:RegisterEvent("CHAT_MSG_WHISPER")
 f:RegisterEvent("MINIMAP_UPDATE_TRACKING")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW")
+f:RegisterEvent("PLAYER_LOGIN")
 f:RegisterEvent("QUEST_LOG_CRITERIA_UPDATE")
 f:RegisterEvent("QUEST_LOG_UPDATE")
 f:RegisterEvent("QUEST_REMOVED")
@@ -1197,7 +1160,6 @@ f:RegisterEvent("QUEST_WATCH_UPDATE")
 f:RegisterEvent("SPELL_PUSHED_TO_ACTIONBAR")
 f:RegisterEvent("TASK_PROGRESS_UPDATE")
 f:RegisterEvent("TRADE_SKILL_LIST_UPDATE")
-f:RegisterEvent("VARIABLES_LOADED")
 f:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 f:SetScript("OnEvent", OnEvent)
 

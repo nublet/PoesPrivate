@@ -44,7 +44,13 @@
     "StaticPopupDialogs",
     "StaticPopup_Show",
     "ChatFrame_AddMessageEventFilter",
-    "OverrideActionBar"
+    "OverrideActionBar",
+    "MultiBar6",
+    "MultiBar7",
+    "ChatEdit_SendText",
+    "ChatEdit_ActivateChat",
+    "ChatEdit_DeactivateChat",
+    "ChatEdit_ChooseBoxForSend"
   ],
   "Lua.runtime.version": "Lua 5.1",
   "Lua.runtime.builtin": {
