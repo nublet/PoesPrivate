@@ -50,7 +50,8 @@
     "ChatEdit_SendText",
     "ChatEdit_ActivateChat",
     "ChatEdit_DeactivateChat",
-    "ChatEdit_ChooseBoxForSend"
+    "ChatEdit_ChooseBoxForSend",
+    "CharacterFrame"
   ],
   "Lua.runtime.version": "Lua 5.1",
   "Lua.runtime.builtin": {

@@ -781,6 +781,11 @@ function ToggleActionBars()
 end
 
 function PoesBarsCommands(msg, editbox)
+	local isSecret = issecretvalue(msg)
+	if isSecret and isSecret == true then
+		return
+	end
+
 	local titleIndex = GetCurrentTitle()
 	local titleName, isPlayerTitle = GetTitleName(titleIndex)
 
@@ -887,6 +892,11 @@ local function OnEvent(self, event, ...)
 		end
 	elseif event == "CHAT_MSG_COMBAT_FACTION_CHANGE" then
 		local msg = ...
+		local isSecret = issecretvalue(msg)
+		if isSecret and isSecret == true then
+			return
+		end
+
 		local factionName = msg:lower():match("reputation with (.+) increased")
 
 		if factionName then
@@ -1064,6 +1074,9 @@ local function OnEvent(self, event, ...)
 
 			ScanCompletedQuests()
 			ToggleActionBars()
+
+			CharacterFrame:ClearAllPoints()
+			CharacterFrame:SetPoint("TOPLEFT", UIParent, "CENTER", -270, 105)
 
 			if IsNix() == false then
 				if SlashCmdList["BUFO"] then
