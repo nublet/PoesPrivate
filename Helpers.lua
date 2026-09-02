@@ -3,39 +3,49 @@ local addonName, addon = ...
 local debounceMaximum = 120 -- 2 Minutes
 local debounceMinimum = 0.05
 local debounceQueue = {}
+local oocQueue = {}
+
+local function ErrorHandler(errMessage)
+	local fullTrace = debug.traceback(tostring(errMessage), 2)
+
+	geterrorhandler()(fullTrace)
+
+	return errMessage
+end
 
 local function SafeCall(func, ...)
 	if InCombatLockdown() then
 		return false, "InCombatLockdown"
 	end
-	local ok, err = pcall(func, ...)
-	if not ok then
-		if err and not err:match("ADDON_ACTION_BLOCKED") then
-			geterrorhandler()(err)
-		end
+
+	if C_Secrets.ShouldAurasBeSecret() then
+		return false, "ShouldAurasBeSecret"
 	end
-	return ok, err
+
+	return xpcall(func, ErrorHandler, ...)
 end
 
 function addon:Debounce(key, delay, func)
-	local entry      = debounceQueue[key]
+	if oocQueue[key] then
+		oocQueue[key] = func
+		return
+	end
+
+	local entry = debounceQueue[key]
 	local queueCalls = entry and entry.queueCalls + 1 or 1
 
-	if entry then
-		entry.isCancelled = true
-		if entry.timer then
-			entry.timer:Cancel()
-		end
+	if entry and entry.timer then
+		entry.timer:Cancel()
 	end
 
 	if queueCalls > 5 then
 		debounceQueue[key] = nil
 
-		if InCombatLockdown() then
-			return
+		if InCombatLockdown() or C_Secrets.ShouldAurasBeSecret() then
+			oocQueue[key] = func
+		else
+			SafeCall(func)
 		end
-
-		SafeCall(func)
 
 		return
 	end
@@ -43,28 +53,20 @@ function addon:Debounce(key, delay, func)
 	delay = tonumber(delay) or 3
 	delay = math.min(math.max(delay, debounceMinimum), debounceMaximum)
 
-	entry = {
-		isCancelled = false,
-		queueCalls = queueCalls
-	}
-
-	entry.timer = C_Timer.NewTimer(delay, function()
-		local existing = debounceQueue[key]
-
+	local timer = C_Timer.NewTimer(delay, function()
 		debounceQueue[key] = nil
 
-		if existing == nil or entry.isCancelled then
-			return
+		if InCombatLockdown() or C_Secrets.ShouldAurasBeSecret() then
+			oocQueue[key] = func
+		else
+			SafeCall(func)
 		end
-
-		if InCombatLockdown() then
-			return
-		end
-
-		SafeCall(func)
 	end)
 
-	debounceQueue[key] = entry
+	debounceQueue[key] = {
+		timer = timer,
+		queueCalls = queueCalls
+	}
 end
 
 function addon:GetBagItems(itemID)
@@ -173,4 +175,14 @@ function addon:NormalizeText(text)
 	end
 
 	return text:lower():gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n", "")
+end
+
+function addon:ProcessOocQueue()
+	for key, func in pairs(oocQueue) do
+		if InCombatLockdown() or C_Secrets.ShouldAurasBeSecret() then
+		else
+			SafeCall(func)
+			oocQueue[key] = nil
+		end
+	end
 end

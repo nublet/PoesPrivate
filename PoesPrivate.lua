@@ -33,15 +33,15 @@ local function CheckCompletedQuest(questID)
 		chatMessage = "Quest completed: [" .. questID .. "]"
 	end
 
-	--if IsInRaid(LE_PARTY_CATEGORY_INSTANCE) or IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
-	--C_ChatInfo.SendChatMessage(chatMessage, "INSTANCE_CHAT")
-	--elseif IsInRaid(LE_PARTY_CATEGORY_HOME) then
-	--C_ChatInfo.SendChatMessage(chatMessage, "RAID")
-	--elseif IsInGroup(LE_PARTY_CATEGORY_HOME) then
-	--C_ChatInfo.SendChatMessage(chatMessage, "PARTY")
-	--else
-	C_ChatInfo.SendChatMessage(chatMessage, "SAY")
-	--end
+	if IsInGuild() then
+		if C_GuildInfo.IsGuildOfficer() then
+			C_ChatInfo.SendChatMessage(chatMessage, "OFFICER")
+		else
+			C_ChatInfo.SendChatMessage(chatMessage, "GUILD")
+		end
+	else
+		print("\124cFF0088FFpoesPrivate: \124r", chatMessage)
+	end
 end
 
 local function CheckQuestProgress(attemptNumber, questID)
@@ -417,6 +417,7 @@ function LoadActionBars()
 	LoadSpell(161, 1224048)
 	LoadSpell(164, 446052)
 	LoadMacro(165, "Mark")
+	LoadItem(166, 275988)
 	LoadSpell(167, 466133)
 	LoadMacro(168, "ToggleBars")
 	-- Action Bar 8
@@ -514,7 +515,7 @@ function ScanBagItems()
 		return
 	end
 
-	if InCombatLockdown() then
+	if InCombatLockdown() or C_Secrets.ShouldAurasBeSecret() then
 		return
 	end
 
@@ -525,7 +526,7 @@ function ScanBagItems()
 				if not addon:IsIgnoredItem(itemInfo) then
 					if itemInfo.hasLoot then
 						C_Timer.After(0.5, function()
-							if InCombatLockdown() then
+							if InCombatLockdown() or C_Secrets.ShouldAurasBeSecret() then
 								return
 							end
 
@@ -537,7 +538,7 @@ function ScanBagItems()
 
 					if addon:IsAutoOpenItem(itemInfo) then
 						C_Timer.After(0.5, function()
-							if InCombatLockdown() then
+							if InCombatLockdown() or C_Secrets.ShouldAurasBeSecret() then
 								return
 							end
 
@@ -722,7 +723,7 @@ function ShareCurrentQuest(questLogId)
 end
 
 function ToggleActionBars()
-	if InCombatLockdown() then
+	if InCombatLockdown() or C_Secrets.ShouldAurasBeSecret() then
 		return
 	end
 
@@ -781,8 +782,7 @@ function ToggleActionBars()
 end
 
 function PoesBarsCommands(msg, editbox)
-	local isSecret = issecretvalue(msg)
-	if isSecret and isSecret == true then
+	if InCombatLockdown() or C_Secrets.ShouldAurasBeSecret() then
 		return
 	end
 
@@ -866,6 +866,10 @@ SLASH_PB1 = "/pb"
 SlashCmdList["PB"] = PoesBarsCommands
 
 local function OnEvent(self, event, ...)
+	if InCombatLockdown() or C_Secrets.ShouldAurasBeSecret() then
+		return
+	end
+
 	if event == "BAG_UPDATE_DELAYED" then
 		addon:Debounce("scanBagItems", 1.5, function()
 			ScanBagItems()
@@ -892,10 +896,6 @@ local function OnEvent(self, event, ...)
 		end
 	elseif event == "CHAT_MSG_COMBAT_FACTION_CHANGE" then
 		local msg = ...
-		local isSecret = issecretvalue(msg)
-		if isSecret and isSecret == true then
-			return
-		end
 
 		local factionName = msg:lower():match("reputation with (.+) increased")
 
@@ -1057,6 +1057,7 @@ local function OnEvent(self, event, ...)
 			C_CVar.SetCVar("alwaysCompareItems", 1)
 			C_CVar.SetCVar("displaySpellActivationOverlays", 1)
 			C_CVar.SetCVar("spellActivationOverlayOpacity", 0.65)
+			C_CVar.SetCVar("TurnSpeed", 150)
 
 			C_CVar.RegisterCVar("addonProfilerEnabled", 1)
 			C_CVar.SetCVar("addonProfilerEnabled", 0)
@@ -1091,6 +1092,8 @@ local function OnEvent(self, event, ...)
 				end
 			end
 		end)
+	elseif event == "PLAYER_REGEN_ENABLED" then
+		addon:ProcessOocQueue()
 	elseif event == "QUEST_LOG_CRITERIA_UPDATE" then
 		local questID, specificTreeID, description, numFulfilled, numRequired = ...
 
@@ -1130,13 +1133,15 @@ local function OnEvent(self, event, ...)
 			CheckQuestProgress(1, questID)
 		end)
 	elseif event == "SPELL_PUSHED_TO_ACTIONBAR" then
-		if not InCombatLockdown() then
-			local spellID, slotIndex, slotPos = ...
-
-			ClearCursor()
-			PickupAction(slotIndex)
-			ClearCursor()
+		if InCombatLockdown() or C_Secrets.ShouldAurasBeSecret() then
+			return
 		end
+
+		local spellID, slotIndex, slotPos = ...
+
+		ClearCursor()
+		PickupAction(slotIndex)
+		ClearCursor()
 	elseif event == "TRADE_SKILL_LIST_UPDATE" then
 		if ordersUpdated then
 			return
@@ -1165,6 +1170,7 @@ f:RegisterEvent("MINIMAP_UPDATE_TRACKING")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW")
 f:RegisterEvent("PLAYER_LOGIN")
+f:RegisterEvent("PLAYER_REGEN_ENABLED")
 f:RegisterEvent("QUEST_LOG_CRITERIA_UPDATE")
 f:RegisterEvent("QUEST_LOG_UPDATE")
 f:RegisterEvent("QUEST_REMOVED")
