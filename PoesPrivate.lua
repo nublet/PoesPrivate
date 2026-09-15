@@ -727,31 +727,9 @@ function ToggleActionBars()
 		return
 	end
 
-	--local bars, E = { 1, 3, 4, 5, 6, 13 }, unpack(_G["ElvUI"])
-
-	--local newState1 = E.db.actionbar["bar3"].visibility
-	--local newState2
-
-	--if newState1 == "show" then
-	--newState1 = "hide"
-	--newState2 = "[vehicleui][overridebar] show;hide"
-	--else
-	--newState1 = "show"
-	--newState2 = "show"
-	--end
-
-	--for _, n in pairs(bars) do
-	--if n == 1 then
-	--E.db.actionbar["bar" .. n].visibility = newState2
-	--else
-	--E.db.actionbar["bar" .. n].visibility = newState1
-	--end
-	--E.ActionBars:PositionAndSizeBar("bar" .. n)
-	--end
-
 	local bars = { MainActionBar, MultiBarBottomLeft, MultiBarBottomRight, MultiBarLeft, MultiBarRight, MultiBar5, PetActionBar, StanceBar }
 	local isShown = MultiBarBottomLeft:IsShown()
-	local visibilityMain = isShown and "[advflyable,mounted][overridebar][possessbar][vehicleui] show; hide" or "show"
+	local visibilityMain = isShown and "[advflyable,mounted][advflyable,form:3][bonusbar:5][overridebar][possessbar][vehicleui] show; hide" or "show"
 	local visibilityOther = isShown and "hide" or "show"
 
 	for i = 1, #bars do
