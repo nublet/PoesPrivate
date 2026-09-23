@@ -722,6 +722,42 @@ function ShareCurrentQuest(questLogId)
 	C_Timer.After(1, function() ShareCurrentQuest(questLogId + 1) end)
 end
 
+function SkipRolecheck()
+	if UnitInParty("player") ~= true then
+		return
+	end
+
+	local role = UnitGroupRolesAssigned("player")
+	local tank, healer, dps = false, false, false
+
+	if role == "NONE" then
+		role = GetSpecializationRole(C_SpecializationInfo.GetSpecialization())
+	end
+
+	if role == "TANK" then
+		tank = true
+	elseif role == "DAMAGER" then
+		dps = true
+	elseif role == "HEALER" then
+		healer = true
+	end
+
+	if LFDRoleCheckPopupRoleButtonTank.checkButton:IsEnabled() then
+		LFDRoleCheckPopupRoleButtonTank.checkButton:SetChecked(tank)
+	end
+
+	if LFDRoleCheckPopupRoleButtonHealer.checkButton:IsEnabled() then
+		LFDRoleCheckPopupRoleButtonHealer.checkButton:SetChecked(healer)
+	end
+
+	if LFDRoleCheckPopupRoleButtonDPS.checkButton:IsEnabled() then
+		LFDRoleCheckPopupRoleButtonDPS.checkButton:SetChecked(dps)
+	end
+
+	LFDRoleCheckPopupAcceptButton:Enable()
+	LFDRoleCheckPopupAcceptButton:Click()
+end
+
 function ToggleActionBars()
 	if InCombatLockdown() or C_Secrets.ShouldAurasBeSecret() then
 		return
@@ -888,6 +924,8 @@ local function OnEvent(self, event, ...)
 				end
 			end
 		end
+	elseif event == "LFG_ROLE_CHECK_SHOW" then
+		SkipRolecheck()
 	elseif event == "MINIMAP_UPDATE_TRACKING" then
 		addon:Debounce("SetTrackingOptions", 1, function()
 			SetTrackingOptions()
@@ -1144,6 +1182,7 @@ f:RegisterEvent("BAG_UPDATE_DELAYED")
 f:RegisterEvent("CHAT_MSG_BN_WHISPER")
 f:RegisterEvent("CHAT_MSG_COMBAT_FACTION_CHANGE")
 f:RegisterEvent("CHAT_MSG_WHISPER")
+f:RegisterEvent("LFG_ROLE_CHECK_SHOW")
 f:RegisterEvent("MINIMAP_UPDATE_TRACKING")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW")

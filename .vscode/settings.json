@@ -51,7 +51,11 @@
     "ChatEdit_ActivateChat",
     "ChatEdit_DeactivateChat",
     "ChatEdit_ChooseBoxForSend",
-    "CharacterFrame"
+    "CharacterFrame",
+    "LFDRoleCheckPopupRoleButtonTank",
+    "LFDRoleCheckPopupRoleButtonHealer",
+    "LFDRoleCheckPopupRoleButtonDPS",
+    "LFDRoleCheckPopupAcceptButton"
   ],
   "Lua.runtime.version": "Lua 5.1",
   "Lua.runtime.builtin": {
