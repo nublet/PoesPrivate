@@ -638,6 +638,8 @@ function SetTrackingOptions()
 					shouldEnable = true;
 				elseif info.name == "Battlemaster" then
 					shouldEnable = true;
+				elseif info.name == "Class Trainer" then
+					shouldEnable = true;
 				elseif info.name == "Find Fish" then
 					shouldEnable = true;
 				elseif info.name == "Find Herbs" then
