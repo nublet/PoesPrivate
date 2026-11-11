@@ -114,9 +114,7 @@ local function CheckQuestProgress(attemptNumber, questID)
 	end
 
 	if questTable.isComplete and wasUpdated then
-		addon:Debounce("checkCompletedQuest_" .. questID, 1, function()
-			CheckCompletedQuest(questID)
-		end)
+		CheckCompletedQuest(questID)
 	end
 
 	if wasUpdated then
@@ -1199,9 +1197,7 @@ local function OnEvent(self, event, ...)
 		local questID = ...
 
 		if C_QuestLog.IsComplete(questID) then
-			addon:Debounce("checkCompletedQuest_" .. questID, 1, function()
-				CheckCompletedQuest(questID)
-			end)
+			CheckCompletedQuest(questID)
 		end
 	elseif event == "QUEST_TURNED_IN" then
 		addon:Debounce("scanBagItems", 1.5, function()
