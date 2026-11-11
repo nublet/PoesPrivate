@@ -33,14 +33,26 @@ local function CheckCompletedQuest(questID)
 		chatMessage = "Quest completed: [" .. questID .. "]"
 	end
 
-	if IsInGuild() then
+	local chatChannel = ""
+
+	if IsInRaid(LE_PARTY_CATEGORY_INSTANCE) then
+		chatChannel = "INSTANCE_CHAT"
+	elseif IsInRaid(LE_PARTY_CATEGORY_HOME) then
+		chatChannel = "RAID"
+	elseif IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+		chatChannel = "INSTANCE_CHAT"
+	elseif IsInGroup(LE_PARTY_CATEGORY_HOME) then
+		chatChannel = "PARTY"
+	elseif IsInGuild() then
 		if C_GuildInfo.IsGuildOfficer() then
-			C_ChatInfo.SendChatMessage(chatMessage, "OFFICER")
-		else
-			C_ChatInfo.SendChatMessage(chatMessage, "GUILD")
+			chatChannel = "OFFICER"
 		end
-	else
+	end
+
+	if chatChannel == "" then
 		print("\124cFF0088FFpoesPrivate: \124r", chatMessage)
+	else
+		C_ChatInfo.SendChatMessage(chatMessage, chatChannel)
 	end
 end
 
@@ -107,9 +119,7 @@ local function CheckQuestProgress(attemptNumber, questID)
 		end)
 	end
 
-	if questTable.isComplete then
-		C_QuestLog.AddQuestWatch(questID)
-	elseif wasUpdated then
+	if wasUpdated then
 		C_QuestLog.AddQuestWatch(questID)
 		C_QuestLog.SetSelectedQuest(questID)
 	end
@@ -630,7 +640,9 @@ function SetTrackingOptions()
 			if not info.active then
 				local shouldEnable = false;
 
-				if info.name == "Auctioneer" then
+				if info.name == "Ammunition" then
+					shouldEnable = true;
+				elseif info.name == "Auctioneer" then
 					shouldEnable = true;
 				elseif info.name == "Banker" then
 					shouldEnable = true;
@@ -661,6 +673,8 @@ function SetTrackingOptions()
 				elseif info.name == "Mailbox" then
 					shouldEnable = true;
 				elseif info.name == "Points of Interest" then
+					shouldEnable = true;
+				elseif info.name == "Poisons" then
 					shouldEnable = true;
 				elseif info.name == "Profession Trainers" then
 					shouldEnable = true;
@@ -878,8 +892,12 @@ function PoesBarsCommands(msg, editbox)
 end
 
 SLASH_PB1 = "/pb"
-
 SlashCmdList["PB"] = PoesBarsCommands
+
+SLASH_RELOADUI1 = "/rl"
+SlashCmdList["RELOADUI"] = function()
+	ReloadUI()
+end
 
 local function OnEvent(self, event, ...)
 	if InCombatLockdown() or C_Secrets.ShouldAurasBeSecret() then
@@ -928,6 +946,31 @@ local function OnEvent(self, event, ...)
 		end
 	elseif event == "LFG_ROLE_CHECK_SHOW" then
 		SkipRolecheck()
+	elseif event == "MERCHANT_SHOW" then
+		if not CanMerchantRepair() then
+			return
+		end
+
+		local cost, canRepair = GetRepairAllCost()
+		if cost <= 0 then
+			return
+		end
+		if not canRepair then
+			return
+		end
+
+		local playerMoney = GetMoney()
+		local canUseGuild, guildMoney = CanGuildBankRepair()
+
+		if canUseGuild and (not guildMoney or guildMoney >= cost) then
+			RepairAllItems(true)
+			print("\124cFF0088FFpoesPrivate: \124r", "Repaired using guild funds:", GetGoldString(cost))
+		elseif playerMoney >= cost then
+			RepairAllItems(false)
+			print("\124cFF0088FFpoesPrivate: \124r", "Repaired using personal gold:", GetGoldString(cost))
+		else
+			print("\124cFF0088FFpoesPrivate: \124r", "Not enough gold (guild or personal) to repair gear!")
+		end
 	elseif event == "MINIMAP_UPDATE_TRACKING" then
 		addon:Debounce("SetTrackingOptions", 1, function()
 			SetTrackingOptions()
@@ -944,19 +987,27 @@ local function OnEvent(self, event, ...)
 					end
 				end
 
-				for bagID = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
-					for slotIndex = 1, C_Container.GetContainerNumSlots(bagID) do
-						local itemLink = C_Container.GetContainerItemLink(bagID, slotIndex)
-						local itemID = itemLink and C_Item.GetItemInfoInstant(itemLink)
+				local projectID = WOW_PROJECT_ID
 
-						if itemID then
-							if itemID == 6948 or itemID == 223988 then
-								ClearCursor()
-								C_Container.PickupContainerItem(bagID, slotIndex)
-								print("\124cFF0088FFpoesPrivate: \124r", "Hearthstone FOUND.")
+				if projectID == 1 then -- WOW_PROJECT_MAINLINE
+					for bagID = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
+						for slotIndex = 1, C_Container.GetContainerNumSlots(bagID) do
+							local itemLink = C_Container.GetContainerItemLink(bagID, slotIndex)
+							local itemID = itemLink and C_Item.GetItemInfoInstant(itemLink)
+
+							if itemID then
+								if itemID == 6948 or itemID == 223988 then
+									ClearCursor()
+									C_Container.PickupContainerItem(bagID, slotIndex)
+									print("\124cFF0088FFpoesPrivate: \124r", "Hearthstone FOUND.")
+								end
 							end
 						end
 					end
+				elseif projectID == 18 then -- WOW_PROJECT_CAMELOT - Forever
+
+				else
+					print("\124cFF0088FFpoesPrivate: \124r", "new projectID FOUND:", projectID)
 				end
 			end)
 		end
@@ -1074,6 +1125,7 @@ local function OnEvent(self, event, ...)
 		addon:Debounce("PlayerLogin", 5, function()
 			C_CVar.SetCVar("alwaysCompareItems", 1)
 			C_CVar.SetCVar("displaySpellActivationOverlays", 1)
+			C_CVar.SetCVar("outlineModeShowLootEffectWhenDisabled", 1)
 			C_CVar.SetCVar("spellActivationOverlayOpacity", 0.65)
 			C_CVar.SetCVar("TurnSpeed", 150)
 
@@ -1096,6 +1148,17 @@ local function OnEvent(self, event, ...)
 
 			CharacterFrame:ClearAllPoints()
 			CharacterFrame:SetPoint("TOPLEFT", UIParent, "CENTER", -270, 105)
+
+			local numEntries = C_QuestLog.GetNumQuestLogEntries()
+
+			for i = 1, numEntries do
+				local questInfo = C_QuestLog.GetInfo(i)
+				if questInfo and not questInfo.isHeader and questInfo.questID then
+					if C_QuestLog.GetQuestWatchType(questInfo.questID) then
+						C_QuestLog.RemoveQuestWatch(questInfo.questID)
+					end
+				end
+			end
 
 			if IsNix() == false then
 				if SlashCmdList["BUFO"] then
@@ -1185,6 +1248,7 @@ f:RegisterEvent("CHAT_MSG_BN_WHISPER")
 f:RegisterEvent("CHAT_MSG_COMBAT_FACTION_CHANGE")
 f:RegisterEvent("CHAT_MSG_WHISPER")
 f:RegisterEvent("LFG_ROLE_CHECK_SHOW")
+f:RegisterEvent("MERCHANT_SHOW")
 f:RegisterEvent("MINIMAP_UPDATE_TRACKING")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_SHOW")
