@@ -7,21 +7,7 @@ local questInformation = {}
 local ordersUpdated = false
 
 local LSM = LibStub("LibSharedMedia-3.0")
-LSM:Register("font", "Naowh", [[Interface\AddOns\PoesBars\FONTS\Naowh.ttf]])
-
-StaticPopupDialogs["MY_AUTO_INVITE"] = {
-	text = "%s wants to join. Invite?",
-	button1 = "Invite",
-	button2 = "Cancel",
-	OnAccept = function(self, data)
-		if data then
-			C_PartyInfo.InviteUnit(Ambiguate(data, "short"))
-		end
-	end,
-	timeout = 10,
-	whileDead = true,
-	hideOnEscape = true,
-}
+LSM:Register("font", "Naowh", [[Interface\FONTS\Naowh.ttf]])
 
 local function CheckCompletedQuest(questID)
 	local questTitle = C_QuestLog.GetTitleForQuestID(questID)
@@ -59,12 +45,12 @@ end
 local function CheckQuestProgress(attemptNumber, questID)
 	local objectives = C_QuestLog.GetQuestObjectives(questID)
 	if not objectives then
-		if attemptNumber >= 5 then
+		if attemptNumber >= 10 then
 			print("\124cFF0088FFpoesPrivate: \124r Failed to get quest objectives:", questID)
 			return
 		end
 
-		addon:Debounce("questProgress_" .. questID, 5, function()
+		addon:Debounce("questProgress_" .. questID, 1, function()
 			CheckQuestProgress(attemptNumber + 1, questID)
 		end)
 
@@ -126,7 +112,7 @@ local function CheckQuestProgress(attemptNumber, questID)
 end
 
 local function ExportMounts()
-	PoesBarsMounts = {}
+	PoesPrivateMounts = {}
 
 	for _, mountID in ipairs(C_MountJournal.GetMountIDs()) do
 		local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight =
@@ -134,7 +120,7 @@ local function ExportMounts()
 		local creatureDisplayInfoID, description, source, isSelfMount, mountTypeID, uiModelSceneID, animID, spellVisualKitID, disablePlayerMountPreview =
 			C_MountJournal.GetMountInfoExtraByID(mountID)
 
-		table.insert(PoesBarsMounts, {
+		table.insert(PoesPrivateMounts, {
 			name = name,
 			spellID = spellID,
 			icon = icon,
@@ -164,7 +150,7 @@ local function ExportMounts()
 end
 
 local function ExportPets()
-	PoesBarsPets = {}
+	PoesPrivatePets = {}
 
 	local numPets, numOwned = C_PetJournal.GetNumPets()
 
@@ -172,7 +158,7 @@ local function ExportPets()
 		local petID, speciesID, owned, customName, level, favorite, isRevoked, speciesName, icon, petType, companionID, tooltip, description, isWild, canBattle, isTradeable, isUnique, obtainable =
 			C_PetJournal.GetPetInfoByIndex(i)
 
-		table.insert(PoesBarsPets, {
+		table.insert(PoesPrivatePets, {
 			petID = petID,
 			speciesID = speciesID,
 			owned = owned,
@@ -228,35 +214,35 @@ local function ExportProfession()
 	if professionInfo then
 		if professionInfo.profession then
 			if professionInfo.profession == 0 then -- First Aid
-				PoesBarsFirstAid = TempDB
+				PoesPrivateFirstAid = TempDB
 			elseif professionInfo.profession == 1 then -- Blacksmithing
-				PoesBarsBlacksmithing = TempDB
+				PoesPrivateBlacksmithing = TempDB
 			elseif professionInfo.profession == 2 then -- Leatherworking
-				PoesBarsLeatherworking = TempDB
+				PoesPrivateLeatherworking = TempDB
 			elseif professionInfo.profession == 3 then -- Alchemy
-				PoesBarsAlchemy = TempDB
+				PoesPrivateAlchemy = TempDB
 			elseif professionInfo.profession == 4 then -- Herbalism
-				PoesBarsHerbalism = TempDB
+				PoesPrivateHerbalism = TempDB
 			elseif professionInfo.profession == 5 then -- Cooking
-				PoesBarsCooking = TempDB
+				PoesPrivateCooking = TempDB
 			elseif professionInfo.profession == 6 then -- Mining
-				PoesBarsMining = TempDB
+				PoesPrivateMining = TempDB
 			elseif professionInfo.profession == 7 then -- Tailoring
-				PoesBarsTailoring = TempDB
+				PoesPrivateTailoring = TempDB
 			elseif professionInfo.profession == 8 then -- Engineering
-				PoesBarsEngineering = TempDB
+				PoesPrivateEngineering = TempDB
 			elseif professionInfo.profession == 9 then -- Enchanting
-				PoesBarsEnchanting = TempDB
+				PoesPrivateEnchanting = TempDB
 			elseif professionInfo.profession == 10 then -- Fishing
-				PoesBarsFishing = TempDB
+				PoesPrivateFishing = TempDB
 			elseif professionInfo.profession == 11 then -- Skinning
-				PoesBarsSkinning = TempDB
+				PoesPrivateSkinning = TempDB
 			elseif professionInfo.profession == 12 then -- Jewelcrafting
-				PoesBarsJewelcrafting = TempDB
+				PoesPrivateJewelcrafting = TempDB
 			elseif professionInfo.profession == 13 then -- Inscription
-				PoesBarsInscription = TempDB
+				PoesPrivateInscription = TempDB
 			elseif professionInfo.profession == 14 then -- Archaeology
-				PoesBarsArchaeology = TempDB
+				PoesPrivateArchaeology = TempDB
 			end
 		end
 	end
@@ -265,7 +251,7 @@ local function ExportProfession()
 end
 
 local function ExportToys()
-	PoesBarsToys = {}
+	PoesPrivateToys = {}
 
 	local numToys = C_ToyBox.GetNumToys()
 
@@ -277,7 +263,7 @@ local function ExportToys()
 			local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent =
 				C_Item.GetItemInfo(indexItemID)
 
-			table.insert(PoesBarsToys, {
+			table.insert(PoesPrivateToys, {
 				indexItemID = indexItemID,
 				toyName = toyName,
 				icon = icon,
@@ -809,8 +795,8 @@ function ToggleActionBars()
 	RegisterStateDriver(MultiBar7, "visibility", "show")
 end
 
-function PoesBarsCommands(msg, editbox)
-	if InCombatLockdown() or C_Secrets.ShouldAurasBeSecret() then
+function PoesPrivateCommands(msg, editbox)
+	if InCombatLockdown() then
 		return
 	end
 
@@ -890,7 +876,7 @@ function PoesBarsCommands(msg, editbox)
 end
 
 SLASH_PB1 = "/pb"
-SlashCmdList["PB"] = PoesBarsCommands
+SlashCmdList["PB"] = PoesPrivateCommands
 
 SLASH_RELOADUI1 = "/rl"
 SlashCmdList["RELOADUI"] = function()
@@ -1176,7 +1162,7 @@ local function OnEvent(self, event, ...)
 	elseif event == "QUEST_LOG_CRITERIA_UPDATE" then
 		local questID, specificTreeID, description, numFulfilled, numRequired = ...
 
-		addon:Debounce("questProgress_" .. questID, 5, function()
+		addon:Debounce("questProgress_" .. questID, 1, function()
 			CheckQuestProgress(1, questID)
 		end)
 	elseif event == "QUEST_LOG_UPDATE" or event == "TASK_PROGRESS_UPDATE" then
@@ -1187,7 +1173,7 @@ local function OnEvent(self, event, ...)
 				if info and not info.isHeader then
 					local objectives = C_QuestLog.GetQuestObjectives(info.questID)
 
-					addon:Debounce("questProgress_" .. info.questID, 5, function()
+					addon:Debounce("questProgress_" .. info.questID, 1, function()
 						CheckQuestProgress(1, info.questID)
 					end)
 				end
@@ -1206,7 +1192,7 @@ local function OnEvent(self, event, ...)
 	elseif event == "QUEST_WATCH_UPDATE" then
 		local questID = ...
 
-		addon:Debounce("questProgress_" .. questID, 5, function()
+		addon:Debounce("questProgress_" .. questID, 1, function()
 			CheckQuestProgress(1, questID)
 		end)
 	elseif event == "SPELL_PUSHED_TO_ACTIONBAR" then

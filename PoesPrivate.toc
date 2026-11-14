@@ -7,7 +7,7 @@
 ## Version: 26.0.1.201
 ## RequiredDeps: LibSharedMedia-3.0
 ## RequiredDeps: Blizzard_Professions
-## SavedVariables: PoesBarsMounts, PoesBarsPets, PoesBarsToys, PoesBarsFirstAid, PoesBarsBlacksmithing, PoesBarsLeatherworking, PoesBarsAlchemy, PoesBarsHerbalism, PoesBarsCooking, PoesBarsMining, PoesBarsTailoring, PoesBarsEngineering, PoesBarsEnchanting, PoesBarsFishing, PoesBarsSkinning, PoesBarsJewelcrafting, PoesBarsInscription, PoesBarsArchaeology
+## SavedVariables: PoesPrivateMounts, PoesPrivatePets, PoesPrivateToys, PoesPrivateFirstAid, PoesPrivateBlacksmithing, PoesPrivateLeatherworking, PoesPrivateAlchemy, PoesPrivateHerbalism, PoesPrivateCooking, PoesPrivateMining, PoesPrivateTailoring, PoesPrivateEngineering, PoesPrivateEnchanting, PoesPrivateFishing, PoesPrivateSkinning, PoesPrivateJewelcrafting, PoesPrivateInscription, PoesPrivateArchaeology
 
 Data.lua
 Helpers.lua
