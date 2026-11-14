@@ -1,0 +1,13 @@
+## Interface: 120100, 16001, 50504, 38001, 20506, 11509
+## Title: PoesCollector
+## Description: Private functions and helpers
+## Notes: Private
+## Author: Poesboi
+## Credits: 
+## Version: 27.0.0.201
+## RequiredDeps: LibSharedMedia-3.0
+## SavedVariables: PoesCollector
+
+Helpers.lua
+
+PoesCollector.lua
