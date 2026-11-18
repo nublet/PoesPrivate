@@ -1110,6 +1110,7 @@ local function OnEvent(self, event, ...)
 			C_CVar.SetCVar("alwaysCompareItems", 1)
 			C_CVar.SetCVar("displaySpellActivationOverlays", 1)
 			C_CVar.SetCVar("outlineModeShowLootEffectWhenDisabled", 1)
+			C_CVar.SetCVar("showInGameNavigation", 1)
 			C_CVar.SetCVar("spellActivationOverlayOpacity", 0.65)
 			C_CVar.SetCVar("TurnSpeed", 150)
 
